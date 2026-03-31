@@ -9,6 +9,7 @@
   "dependencies": {
     "dayjs": "^1.11.7",
     "echarts": "^6.0.0",
+    "sortablejs": "^1.15.7",
     "uuid": "^13.0.0"
   }
 }

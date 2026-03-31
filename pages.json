@@ -37,6 +37,24 @@
       "style": {
         "navigationBarTitleText": "登记成功"
       }
+    },
+    {
+      "path": "pages/record/record-detail",
+      "style": {
+        "navigationBarTitleText": "来访详情"
+      }
+    },
+    {
+      "path": "pages/check-in/sort",
+      "style": {
+        "navigationBarTitleText": "排序"
+      }
+    },
+    {
+      "path": "pages/check-in/list",
+      "style": {
+        "navigationBarTitleText": "签到列表"
+      }
     }
   ],
   "globalStyle": {
