@@ -53,7 +53,7 @@
         <view v-if="showMoreMenu" class="popup-mask" v-show="menuVisible" @click="menuVisible = false">
             <view class="popup-menu" :style="menuStyle" :class="{ 'menu-visible': menuVisible }" @click.stop>
                 <view class="menu-arrow"></view>
-                <view class="menu-item" v-for="(item, index) in menuItems" :key="index"
+                <view class="menu-item" v-for="(item, index) in menuList" :key="index"
                     @click="handleMenuItemClick(item)">
                     <text>{{ item.name }}</text>
                 </view>
@@ -78,7 +78,8 @@ const props = defineProps({
     translucent: { type: Boolean, default: false },
     borderBottom: { type: Boolean, default: true },
     titleBold: { type: Boolean, default: true },
-    customHeight: { type: Number, default: 88 }
+    customHeight: { type: Number, default: 88 },
+    menuList: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['back', 'home'])
@@ -88,10 +89,6 @@ const slots = useSlots()
 const statusBarHeight = ref(0)
 const systemInfo = ref({})
 const menuVisible = ref(false)
-const menuItems = ref([
-    { name: '销售驾驶舱', url: '/pages/index/index' },
-    { name: '销售报表', url: '/pages/report/index' },
-])
 
 // 检查是否有右侧内容（包括默认的home按钮和slot内容）
 const hasRightContent = computed(() => {
