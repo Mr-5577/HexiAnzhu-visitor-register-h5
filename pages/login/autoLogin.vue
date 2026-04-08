@@ -31,11 +31,6 @@ const STORAGE_KEYS = {
     TOKEN: 'token',
     STATE_TAG: 'stateTag'
 }
-// 页面白名单
-const VALID_PAGES = new Set([
-    '/pages/index/index',
-    '/pages/report/index',
-])
 // 固定的回调地址，http://sysa.hexianzhu.com/pages/login/autoLogin
 const CALLBACK_URL = `${config.baseUrlActual}/pages/login/autoLogin`
 
@@ -105,15 +100,14 @@ const redirectToAuth = async () => {
 
     showMessage('正在获取认证信息...')
     try {
-        const urlParams = new URLSearchParams(window.location.search)
-        const homeUrl = urlParams.get('home') ? urlParams.get('home') : '/pages/index/index' // 默认跳转到驾驶舱页面
         // 获取认证地址
         const params = {
             data: DATA_VAL,
-            home: homeUrl,
+            home: '/pages/register/index', // 认证成功后跳转去的页面路径
             autoLoginPage: CALLBACK_URL,
             isQrCode: false, // 是否扫码
         }
+        debugger
         const res = await userApi.getAuthRedirectUrl(params) // 正式接口
         // const res = await userApi.getAuthRedirectUrlTest(params) // 测试接口
         if (res.code === 200 && res.data) {
@@ -143,7 +137,7 @@ const handleTokenLogin = async (token, dataParam) => {
         await new Promise(resolve => setTimeout(resolve, 800))
         // H5 跳转到首页
         uni.redirectTo({
-            url: '/pages/index/index'
+            url: '/pages/register/index'
         })
         return
     }
@@ -153,12 +147,10 @@ const handleTokenLogin = async (token, dataParam) => {
         storage.setToken(token)
         showMessage('登录成功，正在跳转...')
         await new Promise(resolve => setTimeout(resolve, 800))
-        const { home } = getQueryParams()
-        // 判断是否在白名单中，不在就跳首页
-        const targetPath = home && VALID_PAGES.has(home) ? home : '/pages/index/index'
-        // H5 跳转到首页
+
+        // H5 跳转到来访登记页面
         uni.redirectTo({
-            url: targetPath
+            url: '/pages/register/index'
         })
     } else {
         showMessage('登录验证失败，请重新登录')
@@ -290,39 +282,17 @@ const detectDeviceType = () => {
     // 7. 默认返回 - mobile
     return "mobile";
 };
-
-// 让平板用户选择
-const showDeviceChoiceDialog = () => {
-    uni.showModal({
-        title: '选择登录方式',
-        content: '检测到您使用的是平板设备，请选择登录版本',
-        confirmText: '手机版',
-        cancelText: '电脑版',
-        success: (res) => {
-            if (res.confirm) {
-                // 选择手机版
-                handleRouteParams()
-            } else {
-                // 选择电脑版
-                window.location.href = 'http://sys.hexianzhu.com/autoLogin'
-            }
-        }
-    })
-}
 // 生命周期
 onMounted(() => {
     urlInfo.value = window.location.href
     callbackUrl.value = CALLBACK_URL
     const deviceType = detectDeviceType();
     console.log('设备类型:', deviceType)
+    handleRouteParams()
     if (deviceType === 'mobile') {
-        handleRouteParams()
+        // 移动端登录
     } else {
-        // 平板和PC端都重定向到PC端地址,如果有pcHome参数则跳转到对应PC端页面
-        const urlParams = new URLSearchParams(window.location.search)
-        const pcHomeUrl = urlParams.get('pcHome') ? urlParams.get('pcHome') : ''
-        window.location.href = pcHomeUrl ? `http://sys.hexianzhu.com/autoLogin?home=${pcHomeUrl}` : 'http://sys.hexianzhu.com/autoLogin'
-        // window.location.href = pcHomeUrl ? `http://192.168.1.24:3000/autoLogin?home=${pcHomeUrl}` : 'http://192.168.1.24:3000/autoLogin'
+        // 平板和PC端登录
     }
 })
 

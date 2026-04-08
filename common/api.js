@@ -2,13 +2,6 @@ import { post } from "@/utils/request";
 
 // 用户相关接口
 export const userApi = {
-  // 登录
-  login(data) {
-    return post("/auth/login", data, {
-      showLoading: true,
-      loadingText: "登录中...",
-    });
-  },
   // 获取认证地址回调
   getAuthRedirectUrl: (data) => {
     return post(`/callback/getAuthRedirectUrl`, data);
@@ -17,66 +10,59 @@ export const userApi = {
   getAuthRedirectUrlTest: (data) => {
     return post(`/callback/getAuthRedirectUrlTest`, data);
   },
-  // 退出登录
-  logout() {
-    return post("/auth/logout");
-  },
 };
-// 大屏相关接口
-export const largeScreenApi = {
+// 来访登记接口
+export const visitorRegisterApi = {
+  // 获取知晓途径
+  getKnowWay: () => {
+    return post("/visit/getKnowWay");
+  },
+  // 获取到访方式
+  getVisitType: () => {
+    return post("/visit/getVisitType");
+  },
   // 获取项目列表
   getProjList: () => {
-    return post("/emp/getProjList");
+    return post("/visit/getProjList");
   },
-  // 获取项目列表(树)
-  getProjTree: () => {
-    return post("/emp/getProjTree");
+  // 获取报备列表
+  getReportHis: (data) => {
+    return post("/visit/getReportHis", data);
   },
-  // 获取销售业绩数据
-  getSaleInfo: (data) => {
-    return post("/sale/getSaleInfo", data);
+  // 获取置业顾问列表
+  getSalerList: (data) => {
+    return post("/visit/getSalerList", data);
   },
-  // 获取溢价业绩数据
-  getPremiumInfo: (data) => {
-    return post("/sale/getPremiumInfo", data);
+  // 更改置业顾问AB排序
+  setSalerAbsort: (data) => {
+    return post("/visit/setSalerAbsort", data);
   },
-  // 获取销售业绩数据（项目月度）
-  getSaleProjInfo: (data) => {
-    return post("/sale/getSaleProjInfo", data);
+  // 批量保存置业顾问 AB 位排序
+  batchSaveSalerAbsort: (data) => {
+    return post("/visit/batchSaveSalerAbsort", data);
   },
-  // 获取销售业绩数据（个人月度）
-  getSaleProjSalerInfo: (data) => {
-    return post("/sale/getSaleProjSalerInfo", data);
+  // 置业顾问签到
+  setSignIn: (data) => {
+    return post("/visit/setSignIn", data);
   },
-  // 获取销售业绩数据（近一年）
-  getSaleYearInfo: (data) => {
-    return post("/sale/getSaleYearInfo", data);
+  // 置业顾问签退
+  setSignOut: (data) => {
+    return post("/visit/setSignOut", data);
   },
-  // 获取销售业绩数据（近三十天）
-  getCustomerCome30Day: (data) => {
-    return post("/sale/getCustomerCome30Day", data);
+  // 新增客户来访记录
+  addVisitRec: (data) => {
+    return post("/visit/addVisitRec", data);
   },
-  // 获取库存数据
-  getRoomStockInfo: (data) => {
-    return post("/sale/getRoomStockInfo", data);
+  // 修改客户来访记录
+  editVisitRec: (data) => {
+    return post("/visit/editVisitRec", data);
   },
-  // 获取库存结构数据
-  getRoomStockGroupInfo: (data) => {
-    return post("/sale/getRoomStockGroupInfo", data);
+  // 获取客户来访记录
+  getVisitHis: (data) => {
+    return post("/visit/getVisitHis", data);
   },
-  // 获取销售总览
-  getSaleGeneralInfo: (data) => {
-    return post("/sale/getSaleGeneralInfo", data);
-  },
-  // 获取来访数据
-  getCustomerComeInfo: (data) => {
-    return post("/sale/getCustomerComeInfo", data);
-  },
-};
-// 销售报表
-export const saleReportApi = {
-  // 获取销售业绩日、月、年报总体数据
-  getAsstTotalForApp: (data) => {
-    return post("/sale/getAsstTotalForApp", data);
+  // 批量重新分配置业顾问
+  batchResetSaler: (data) => {
+    return post("/visit/batchResetSaler", data);
   },
 };

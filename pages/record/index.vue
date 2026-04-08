@@ -1,201 +1,279 @@
 <template>
-    <view class="record-container">
+    <view class="customer-container">
         <!-- 顶部查询条件 -->
         <view class="search-bar">
-            <view class="search-row">
-                <view class="search-item">
-                    <picker mode="date" style="width: 100%;" :value="searchForm.visitDate" @change="onDateChange">
-                        <view class="search-picker">
-                            {{ searchForm.visitDate || '来访日期' }}
-                        </view>
-                    </picker>
-                </view>
-
-                <view class="search-item">
-                    <input class="search-input" v-model="searchForm.customerName" placeholder="报备号码/客户名"
-                        @confirm="handleSearch" />
-                </view>
+            <view class="query-info-content">
+                <view class="title">项目</view>
+                <picker mode="selector" :range="projectList" style="width: 100%;" range-key="name"
+                    @change="handleProjectChange">
+                    <view class="pro-picker">
+                        {{ searchForm.visitProjName || '请选择项目' }}
+                        <!-- <uni-icons type="closeempty" size="14" color="#999" v-show="searchForm.visitProjName"
+                            @click.stop="handleProjectClear"></uni-icons> -->
+                    </view>
+                </picker>
             </view>
-
-            <view class="search-buttons">
-                <button class="reset-btn" @click="resetSearch">重置</button>
-                <button class="search-btn" @click="handleSearch">查询</button>
+            <view class="filter-icon" @click="openSearchPopup">
+                <text class="search-text">更多筛选</text>
+                <view class="picker-arrow"></view>
             </view>
         </view>
 
         <!-- 表单内容 -->
-        <scroll-view class="record-list" scroll-y>
-            <view v-if="filteredRecordList.length > 0" class="list-container">
-                <view v-for="(item, index) in filteredRecordList" :key="index" class="record-item"
-                    @click="viewDetail(item)">
-                    <view class="info-row">
-                        <text class="info-label">客户名称：</text>
-                        <text class="info-value">{{ item.customerName }}</text>
+        <scroll-view class="customer-list" scroll-y>
+            <view v-if="recordList.length > 0" class="list-container">
+                <view v-for="(item, index) in recordList" :key="index" class="record-item">
+                    <!-- 复选框 -->
+                    <view class="checkbox-wrapper" @click.stop="toggleSelect(item.id)">
+                        <view :class="['checkbox', selectedIds.includes(item.id) ? 'checked' : '']">
+                            <text v-if="selectedIds.includes(item.id)" class="checkmark">✓</text>
+                        </view>
                     </view>
-                    <view class="info-row">
-                        <text class="info-label">客户电话：</text>
-                        <text class="info-value">{{ item.customerPhone }}</text>
-                    </view>
-                    <view class="info-row">
-                        <text class="info-label">置业顾问：</text>
-                        <text class="info-value">{{ item.consultantName || '未分配' }}</text>
-                    </view>
-                    <view class="info-row" v-if="item.visitMethod">
-                        <text class="info-label">来访方式：</text>
-                        <text class="info-value">{{ item.visitMethod }}</text>
+
+                    <!-- 内容区域 -->
+                    <view class="item-content" @click="viewDetail(item)">
+                        <view class="info-row">
+                            <text class="info-label">客户名称：</text>
+                            <text class="info-value">{{ item.custName }}</text>
+                        </view>
+                        <view class="info-row">
+                            <text class="info-label">客户电话：</text>
+                            <text class="info-value">{{ item.custTel }}</text>
+                        </view>
+                        <view class="info-row">
+                            <text class="info-label">客户电话2：</text>
+                            <text class="info-value">{{ item.custTel2 }}</text>
+                        </view>
+                        <view class="info-row">
+                            <text class="info-label">到访方式：</text>
+                            <text class="info-value">{{ getTextRect(item.visitTypeId) }}</text>
+                        </view>
+                        <view class="info-row">
+                            <text class="info-label">置业顾问：</text>
+                            <text class="info-value">{{ getSalerTextRect(item.salerId) }}</text>
+                        </view>
+                        <view class="info-row">
+                            <text class="info-label">来访时间：</text>
+                            <text class="info-value">{{ item.visitTime }}</text>
+                        </view>
                     </view>
                 </view>
             </view>
 
             <!-- 空状态 -->
             <view v-else class="empty-state">
-                <image src="/static/empty.png" mode="aspectFit" class="empty-image" v-if="false" />
+                <image src="/static/empty.png" mode="aspectFit" class="empty-image" />
                 <text class="empty-text">暂无数据</text>
             </view>
         </scroll-view>
+
+        <!-- 底部操作栏 -->
+        <view v-if="recordList.length > 0" class="bottom-bar">
+            <view class="select-all" @click="toggleSelectAll">
+                <view :class="['checkbox', isAllSelected ? 'checked' : '']">
+                    <text v-if="isAllSelected" class="checkmark">✓</text>
+                </view>
+                <text class="select-all-text">全选</text>
+            </view>
+            <view class="action-buttons">
+                <button class="batch-allocate-btn" @click="showAllocateDialog" :disabled="selectedIds.length === 0">
+                    重新分配({{ selectedIds.length }})
+                </button>
+            </view>
+        </view>
+
+        <!-- 重新分配弹窗 -->
+        <view class="allocate-mask" v-if="showAllocate" @click="closeAllocateDialog">
+            <view class="allocate-dialog" @click.stop>
+                <view class="dialog-title">
+                    <text>选择置业顾问</text>
+                    <text class="close-icon" @click="closeAllocateDialog">✕</text>
+                </view>
+                <view class="dialog-content">
+                    <view class="consultant-list">
+                        <view v-for="(consultant, index) in salerList" :key="index" class="consultant-item"
+                            :class="{ active: selectedConsultantId === consultant.salerId }"
+                            @click="selectConsultant(consultant.salerId)">
+                            <text class="consultant-name">{{ consultant.salerName }}</text>
+                            <view class="check-icon"
+                                :class="{ 'checked': selectedConsultantId === consultant.salerId }">
+                                {{ selectedConsultantId === consultant.salerId ? '✓' : '○' }}
+                            </view>
+                        </view>
+                    </view>
+                </view>
+                <view class="dialog-buttons">
+                    <button class="cancel-btn" @click="closeAllocateDialog">取消</button>
+                    <button class="confirm-btn" @click="confirmAllocate">确定分配</button>
+                </view>
+            </view>
+        </view>
+
+        <!-- 搜索弹窗组件 -->
+        <uni-popup ref="searchPopupRef" type="right" background-color="#fff" border-radius="15rpx 0 0 15rpx"
+            :is-mask-click="false" @maskClick="closeSearch">
+            <view class="search-popup-form">
+                <view class="form-container">
+                    <view class="form-item">
+                        <view class="item-label">项目</view>
+                        <picker mode="selector" :range="projectList" range-key="name" @change="onProjectChange">
+                            <view class="picker">
+                                {{ tempSearchForm.visitProjName || '请选择项目' }}
+                                <!-- <uni-icons type="closeempty" size="14" color="#999"
+                                    v-show="tempSearchForm.visitProjName" @click.stop="clearTempProject"></uni-icons> -->
+                            </view>
+                        </picker>
+                    </view>
+                    <view class="form-item">
+                        <view class="item-label">来访日期</view>
+                        <picker mode="date" style="width: 100%;" :value="tempSearchForm.visitDate"
+                            @change="onTempDateChange">
+                            <view class="picker">
+                                {{ tempSearchForm.visitDate || '来访日期' }}
+                                <uni-icons type="closeempty" size="14" color="#999" v-show="tempSearchForm.visitDate"
+                                    @click.stop="tempSearchForm.visitDate = ''"></uni-icons>
+                            </view>
+                        </picker>
+                    </view>
+                    <view class="form-item">
+                        <view class="item-label">客户姓名</view>
+                        <input class="input" v-model="tempSearchForm.custName" placeholder="请输入客户姓名" maxlength="20" />
+                    </view>
+                    <view class="form-item">
+                        <view class="item-label">客户电话</view>
+                        <input class="input" v-model="tempSearchForm.custTel" placeholder="请输入客户电话" />
+                    </view>
+                    <view class="form-item query-action">
+                        <button class="cancel-btn" @click="closeSearch">取消</button>
+                        <button class="query-btn" @click="handleSearch">查询</button>
+                    </view>
+                </view>
+            </view>
+        </uni-popup>
     </view>
 </template>
 
 <script setup>
+import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
+import { visitorRegisterApi } from '@/common/api.js'
+import { transformData } from '@/utils/common.js'
 
 // 查询表单
 const searchForm = ref({
+    visitProjId: '',
+    visitProjName: '',
     visitDate: '',
-    customerName: ''
+    custName: '',
+    custTel: ''
 })
 
-// 原始数据列表
-const originalRecordList = ref([
-    {
-        id: 1,
-        customerName: '张三',
-        customerPhone: '138****0000',
-        consultantName: 'AAAAA-小王',
-        visitTime: '2024-01-15 14:30',
-        visitMethod: '自驾',
-        status: 'completed', // completed: 已完成, pending: 待分配, cancelled: 已取消
-        visitType: '自然来访',
-        relation: '客户',
-        channel: '门店'
-    },
-    {
-        id: 2,
-        customerName: '李四',
-        customerPhone: '139****1111',
-        consultantName: 'BBBBB-小李',
-        visitTime: '2024-01-15 10:15',
-        visitMethod: '步行',
-        status: 'completed',
-        visitType: '渠道来访',
-        relation: '朋友',
-        channel: '介绍'
-    },
-    {
-        id: 3,
-        customerName: '王五',
-        customerPhone: '137****2222',
-        consultantName: '',
-        visitTime: '2024-01-14 16:45',
-        visitMethod: '打车',
-        status: 'pending',
-        visitType: '自然来访',
-        relation: '客户',
-        channel: '电约'
-    },
-    {
-        id: 4,
-        customerName: '赵六',
-        customerPhone: '136****3333',
-        consultantName: 'CCCCC-小张',
-        visitTime: '2024-01-14 09:30',
-        visitMethod: '自驾',
-        status: 'completed',
-        visitType: '渠道来访',
-        relation: '亲戚',
-        channel: '门店'
-    },
-    {
-        id: 5,
-        customerName: '孙七',
-        customerPhone: '135****4444',
-        consultantName: 'AAAAA-小王',
-        visitTime: '2024-01-13 11:20',
-        visitMethod: '公交',
-        status: 'cancelled',
-        visitType: '自然来访',
-        relation: '客户',
-        channel: '拓展'
-    },
-    {
-        id: 6,
-        customerName: '周八',
-        customerPhone: '134****5555',
-        consultantName: 'BBBBB-小李',
-        visitTime: '2024-01-13 15:00',
-        visitMethod: '地铁',
-        status: 'completed',
-        visitType: '渠道来访',
-        relation: '朋友',
-        channel: '介绍'
-    },
-    {
-        id: 7,
-        customerName: '吴九',
-        customerPhone: '133****6666',
-        consultantName: '',
-        visitTime: '2024-01-12 10:30',
-        visitMethod: '自驾',
-        status: 'pending',
-        visitType: '自然来访',
-        relation: '客户',
-        channel: '门店'
-    }
-])
+// 临时搜索表单（弹窗中使用的副本）
+const tempSearchForm = ref({
+    visitProjId: '',
+    visitProjName: '',
+    visitDate: '',
+    custName: '',
+    custTel: ''
+})
 
-// 筛选后的列表
-const filteredRecordList = ref([...originalRecordList.value])
+// 数据列表
+const recordList = ref([])
 
-// 日期选择
-const onDateChange = (e) => {
-    searchForm.value.visitDate = e.detail.value
-    handleSearch()
+// 项目数据
+const projectList = ref([])
+
+// 来访方式
+const visitMethodList = ref([])
+
+// 置业顾问
+const salerList = ref([])
+
+// 选中的ID列表
+const selectedIds = ref([])
+
+// 搜索弹窗引用
+const searchPopupRef = ref(null)
+
+// 重新分配弹窗控制
+const showAllocate = ref(false)
+const selectedConsultantId = ref(null)
+
+// 是否全选
+const isAllSelected = computed(() => {
+    return recordList.value.length > 0 &&
+        selectedIds.value.length === recordList.value.length
+})
+
+// 项目切换
+const handleProjectChange = async (e) => {
+    const index = e.detail.value
+    searchForm.value.visitProjId = projectList.value[index].id
+    searchForm.value.visitProjName = projectList.value[index].name
+    selectedIds.value = []
+    await fetchGetSalerList() // 重新获取置业顾问列表
+    getRecordList()
 }
 
-// 重置查询
-const resetSearch = () => {
-    searchForm.value = {
-        visitDate: '',
-        customerName: ''
-    }
-    handleSearch()
+// 清空项目选择
+const handleProjectClear = () => {
+    searchForm.value.visitProjId = ''
+    searchForm.value.visitProjName = ''
+    selectedIds.value = []
+    getRecordList()
 }
 
-// 查询
-const handleSearch = () => {
-    let filtered = [...originalRecordList.value]
-
-    // 按来访日期筛选
-    if (searchForm.value.visitDate) {
-        filtered = filtered.filter(item =>
-            item.visitTime.startsWith(searchForm.value.visitDate)
-        )
+// 打开搜索弹窗
+const openSearchPopup = () => {
+    tempSearchForm.value = {
+        visitProjId: searchForm.value.visitProjId,
+        visitProjName: searchForm.value.visitProjName,
+        visitDate: searchForm.value.visitDate,
+        custName: searchForm.value.custName,
+        custTel: searchForm.value.custTel,
     }
+    searchPopupRef.value?.open()
+}
 
-    // 按客户名称筛选（模糊匹配）
-    if (searchForm.value.customerName) {
-        filtered = filtered.filter(item =>
-            item.customerName.includes(searchForm.value.customerName)
-        )
+// 弹窗内项目选择
+const onProjectChange = (e) => {
+    const index = e.detail.value
+    tempSearchForm.value.visitProjId = projectList.value[index].id
+    tempSearchForm.value.visitProjName = projectList.value[index].name
+}
+
+// 清空弹窗内项目选择
+const clearTempProject = () => {
+    tempSearchForm.value.visitProjId = ''
+    tempSearchForm.value.visitProjName = ''
+}
+
+// 弹窗内日期选择
+const onTempDateChange = (e) => {
+    tempSearchForm.value.visitDate = e.detail.value
+}
+
+// 关闭搜索弹窗
+const closeSearch = () => {
+    searchPopupRef.value?.close()
+}
+
+// 切换单个选中
+const toggleSelect = (id) => {
+    const index = selectedIds.value.indexOf(id)
+    if (index > -1) {
+        selectedIds.value.splice(index, 1)
+    } else {
+        selectedIds.value.push(id)
     }
+}
 
-    filteredRecordList.value = filtered
-
-    if (filtered.length === 0 && (searchForm.value.visitDate || searchForm.value.customerName)) {
-        uni.showToast({
-            title: '暂无匹配数据',
-            icon: 'none'
-        })
+// 全选/取消全选
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedIds.value = []
+    } else {
+        selectedIds.value = recordList.value.map(item => item.id)
     }
 }
 
@@ -207,10 +285,205 @@ const viewDetail = (item) => {
     })
 }
 
-// 页面加载时获取数据
-onMounted(() => {
-    // 可以在这里调用API获取真实数据
-    // getRecordList()
+// 显示分配弹窗
+const showAllocateDialog = () => {
+    if (selectedIds.value.length === 0) return
+    selectedConsultantId.value = null
+    showAllocate.value = true
+}
+
+// 关闭分配弹窗
+const closeAllocateDialog = () => {
+    showAllocate.value = false
+    selectedConsultantId.value = null
+}
+
+// 选择置业顾问
+const selectConsultant = (id) => {
+    selectedConsultantId.value = id
+}
+
+// 确认分配
+const confirmAllocate = async () => {
+    if (!selectedConsultantId.value) {
+        uni.showToast({
+            title: '请选择置业顾问',
+            icon: 'none'
+        })
+        return
+    }
+    try {
+        const params = {
+            visitRecIds: selectedIds.value || [], // 选中的来访记录数据
+            salerId: selectedConsultantId.value // 置业顾问ID
+        }
+        const res = await visitorRegisterApi.batchResetSaler(params)
+        if (res.code === 200) {
+            // await new Promise(resolve => setTimeout(resolve, 500))
+            closeAllocateDialog() // 关闭选择顾问弹窗
+            selectedConsultantId.value = null // 清除选中的置业顾问
+            selectedIds.value = [] // 清除选中的客户数据
+            getRecordList() // 重新获取列表
+            uni.showToast({
+                title: `${res.message || '分配成功'}`,
+                icon: 'none'
+            })
+        }
+    } catch (error) { }
+}
+
+// 查询
+const handleSearch = async () => {
+    selectedIds.value = []
+    // 将临时表单的值同步到主表单
+    searchForm.value = {
+        visitProjId: tempSearchForm.value.visitProjId,
+        visitProjName: tempSearchForm.value.visitProjName,
+        visitDate: tempSearchForm.value.visitDate,
+        custName: tempSearchForm.value.custName,
+        custTel: tempSearchForm.value.custTel,
+    }
+    searchPopupRef.value?.close()
+    await fetchGetSalerList() // 重新获取置业顾问列表
+    getRecordList()
+}
+
+// 获取来访方式显示文本
+const getTextRect = (val) => {
+    const target = visitMethodList.value.find((item) => item.id == val)
+    return target?.name || ''
+}
+
+// 获取置业顾问显示文本
+const getSalerTextRect = (val) => {
+    const target = salerList.value.find((item) => item.salerId == val)
+    return target?.salerName || '-'
+}
+
+// 获取项目数据
+const fetchGetProjList = async () => {
+    try {
+        const res = await visitorRegisterApi.getProjList()
+        if (res.code === 200) {
+            const data = res.data || []
+            const newData = data.map((item) => {
+                return {
+                    ...item,
+                    id: item.projId,
+                    name: item.projName
+                }
+            })
+            projectList.value = newData
+            // 默认选中第一个项目
+            if (newData.length > 0) {
+                searchForm.value.visitProjId = newData[0].id
+                searchForm.value.visitProjName = newData[0].name
+            }
+        }
+    } catch (error) {
+        projectList.value = []
+    }
+}
+
+// 获取来访方式
+const fetchGetVisitType = async () => {
+    try {
+        const res = await visitorRegisterApi.getVisitType()
+        if (res.code === 200) {
+            const data = res.data || []
+            const [firstData, ...restData] = data
+            const { optionStr, valueStr } = firstData || {}
+            visitMethodList.value = transformData(optionStr, valueStr)
+        }
+    } catch (error) {
+        visitMethodList.value = []
+    }
+}
+
+// 获取置业顾问
+const fetchGetSalerList = async () => {
+    try {
+        const res = await visitorRegisterApi.getSalerList({ projId: searchForm.value.visitProjId })
+        if (res.code === 200) {
+            const dataList = res.data || []
+            salerList.value = dataList.map((item) => {
+                return {
+                    ...item,
+                    name: item.salerName
+                }
+            })
+        }
+    } catch (error) {
+        salerList.value = []
+    }
+}
+
+// 获取记录列表
+const getRecordList = async () => {
+    recordList.value = []
+    try {
+        uni.showLoading({
+            title: '获取数据中...',
+            mask: true,
+        });
+        let params = {
+            projId: searchForm.value.visitProjId,
+            custName: searchForm.value.custName,
+            custTel: searchForm.value.custTel,
+        }
+        if (searchForm.value.visitDate) {
+            params.visitTimeStart = `${searchForm.value.visitDate} 00:00:00`
+            params.visitTimeEnd = `${searchForm.value.visitDate} 23:59:59`
+        }
+        const res = await visitorRegisterApi.getVisitHis(params)
+        if (res.code === 200) {
+            const data = res.data || []
+            recordList.value = data
+        }
+    } catch (error) {
+        console.error('获取记录列表失败:', error)
+    } finally {
+        uni.hideLoading()
+    }
+}
+
+// 重置搜索表单
+const resetData = () => {
+    selectedIds.value = []
+    searchForm.value = {
+        visitProjId: '',
+        visitProjName: '',
+        visitDate: '',
+        custName: '',
+        custTel: '',
+    }
+    tempSearchForm.value = {
+        visitProjId: '',
+        visitProjName: '',
+        visitDate: '',
+        custName: '',
+        custTel: '',
+    }
+    showAllocate.value = false
+    selectedConsultantId.value = null
+    searchPopupRef.value?.close()
+}
+
+// 页面显示时加载数据
+onShow(async () => {
+    await fetchGetProjList()
+    await fetchGetVisitType()
+    await fetchGetSalerList()
+    await getRecordList()
+})
+onHide(() => {
+    resetData()
+})
+onMounted(async () => {
+    // await fetchGetProjList()
+    // await fetchGetVisitType()
+    // await fetchGetSalerList()
+    // await getRecordList()
 })
 </script>
 
@@ -220,7 +493,7 @@ page {
     background-color: #f5f5f5;
 }
 
-.record-container {
+.customer-container {
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -231,95 +504,74 @@ page {
 /* 查询条件样式 */
 .search-bar {
     background-color: #fff;
-    padding: 20rpx 30rpx;
+    padding: 20rpx 20rpx;
     border-bottom: 1rpx solid #f0f0f0;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 20rpx;
 
-    .search-row {
+    .query-info-content {
+        flex: 1;
         display: flex;
-        gap: 20rpx;
-        margin-bottom: 20rpx;
+        align-items: center;
+        gap: 30rpx;
+        min-width: 0;
 
-        .search-item {
-            flex: 1;
+        .title {
+            font-size: 28rpx;
+            color: #666;
+            width: 120rpx;
+            text-align: right;
+        }
+
+        .pro-picker {
+            width: 100%;
+            font-size: 28rpx;
+            color: #999;
+            padding: 8rpx 16rpx;
+            box-sizing: border-box;
+            height: 60rpx;
             display: flex;
             align-items: center;
-            gap: 16rpx;
-
-            .search-picker {
-                flex: 1;
-                width: 100%;
-                height: 64rpx;
-                line-height: 64rpx;
-                background-color: #f5f5f5;
-                border-radius: 10rpx;
-                padding: 0 20rpx;
-                font-size: 28rpx;
-                color: #808080;
-                position: relative;
-
-                &::after {
-                    content: '>';
-                    position: absolute;
-                    right: 20rpx;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #ccc;
-                    font-size: 24rpx;
-                }
-            }
-
-            .search-input {
-                flex: 1;
-                height: 64rpx;
-                background-color: #f5f5f5;
-                border-radius: 10rpx;
-                padding: 0 20rpx;
-                font-size: 28rpx;
-                color: #333;
-
-                &::placeholder {
-                    color: #808080;
-                }
-            }
+            border: 1rpx solid #e0e0e0;
+            border-radius: 12rpx;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
     }
 
-    .search-buttons {
+    .filter-icon {
+        width: 150rpx;
         display: flex;
-        gap: 20rpx;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
 
-        .reset-btn,
-        .search-btn {
-            width: 180rpx;
-            height: 64rpx;
-            line-height: 64rpx;
+        .search-text {
             font-size: 28rpx;
-            border-radius: 36rpx;
-            border: none;
-            padding: 0;
-            margin: 0;
-
-            &::after {
-                border: none;
-            }
+            font-weight: bold;
+            color: #409eff;
         }
 
-        .reset-btn {
-            background-color: #fff;
-            color: #666;
-            border: 1rpx solid #e0e0e0;
-        }
-
-        .search-btn {
-            background: linear-gradient(135deg, #007AFF, #0056b3);
-            color: #fff;
+        .picker-arrow {
+            width: 0;
+            height: 0;
+            border-right: 10rpx solid transparent;
+            border-bottom: 10rpx solid transparent;
+            border-top: 10rpx solid transparent;
+            border-left: 12rpx solid #409eff;
+            flex-shrink: 0;
+            margin-left: 6rpx;
         }
     }
 }
 
 /* 滚动区域 */
-.record-list {
+.customer-list {
     flex: 1;
     overflow-y: auto;
     padding: 20rpx 20rpx;
@@ -335,6 +587,18 @@ page {
         border-radius: 16rpx;
         padding: 24rpx;
         transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 20rpx;
+
+        .checkbox-wrapper {
+            flex-shrink: 0;
+            padding-top: 4rpx;
+        }
+
+        .item-content {
+            flex: 1;
+        }
 
         .info-row {
             display: flex;
@@ -348,13 +612,193 @@ page {
 
             .info-label {
                 color: #999;
-                width: 140rpx;
+                width: 156rpx;
                 flex-shrink: 0;
             }
 
             .info-value {
                 color: #666;
                 flex: 1;
+            }
+        }
+    }
+}
+
+/* 复选框样式 */
+.checkbox {
+    width: 40rpx;
+    height: 40rpx;
+    border: 2rpx solid #ddd;
+    border-radius: 6rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    transition: all 0.2s ease;
+
+    &.checked {
+        background-color: #007AFF;
+        border-color: #007AFF;
+    }
+
+    .checkmark {
+        color: #fff;
+        font-size: 28rpx;
+        font-weight: bold;
+        line-height: 1;
+    }
+}
+
+/* 底部操作栏 */
+.bottom-bar {
+    background-color: #fff;
+    padding: 20rpx 30rpx;
+    border-top: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+
+    .select-all {
+        display: flex;
+        align-items: center;
+        gap: 16rpx;
+
+        .select-all-text {
+            font-size: 28rpx;
+            color: #333;
+        }
+    }
+
+    .action-buttons {
+        .batch-allocate-btn {
+            background: linear-gradient(135deg, #007AFF, #0056b3);
+            color: #fff;
+            border: none;
+            border-radius: 36rpx;
+            padding: 0 32rpx;
+            height: 64rpx;
+            line-height: 64rpx;
+            font-size: 28rpx;
+
+            &[disabled] {
+                background-color: #ff9999;
+                opacity: 0.6;
+            }
+
+            &::after {
+                border: none;
+            }
+        }
+    }
+}
+
+/* 重新分配弹窗样式 */
+.allocate-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+}
+
+.allocate-dialog {
+    width: 600rpx;
+    background-color: #fff;
+    border-radius: 24rpx;
+    overflow: hidden;
+
+    .dialog-title {
+        padding: 24rpx 30rpx;
+        border-bottom: 1rpx solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 30rpx;
+        font-weight: bold;
+        color: #333;
+
+        .close-icon {
+            font-size: 32rpx;
+            color: #999;
+            cursor: pointer;
+        }
+    }
+
+    .dialog-content {
+        max-height: 500rpx;
+        overflow-y: auto;
+
+        .consultant-list {
+            padding: 20rpx;
+
+            .consultant-item {
+                padding: 12rpx 20rpx;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1rpx solid #f5f5f5;
+                cursor: pointer;
+
+                &.active {
+                    background-color: #e8f4ff;
+
+                    .consultant-name {
+                        color: #007AFF;
+                    }
+                }
+
+                .consultant-name {
+                    font-size: 28rpx;
+                    color: #333;
+                }
+
+                .check-icon {
+                    color: #999;
+                    font-size: 28rpx;
+                    font-weight: bold;
+                }
+
+                .checked {
+                    color: #007AFF;
+
+                }
+            }
+        }
+    }
+
+    .dialog-buttons {
+        display: flex;
+        border-top: 1rpx solid #f0f0f0;
+
+        button {
+            flex: 1;
+            height: 88rpx;
+            line-height: 88rpx;
+            font-size: 28rpx;
+            border: none;
+            border-radius: 0;
+            background: #fff;
+            margin: 0;
+
+            &::after {
+                border: none;
+            }
+
+            &.cancel-btn {
+                color: #666;
+                border-right: 1rpx solid #f0f0f0;
+            }
+
+            &.confirm-btn {
+                color: #007AFF;
+                font-weight: bold;
             }
         }
     }
@@ -377,6 +821,93 @@ page {
     .empty-text {
         font-size: 28rpx;
         color: #999;
+    }
+}
+
+// 搜索表单样式
+.search-popup-form {
+    width: 70vw;
+    height: 100%;
+    background: #fff;
+    padding: 48rpx 40rpx;
+    box-sizing: border-box;
+
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 40rpx;
+
+        .form-item {
+            .item-label {
+                font-size: 28rpx;
+                color: #666;
+                margin-bottom: 16rpx;
+                font-weight: 500;
+            }
+
+            .picker {
+                font-size: 28rpx;
+                color: #999;
+                padding: 8rpx 16rpx;
+                box-sizing: border-box;
+                height: 64rpx;
+                display: flex;
+                align-items: center;
+                border: 1rpx solid #e0e0e0;
+                border-radius: 12rpx;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .input {
+                flex: 1;
+                font-size: 28rpx;
+                color: #999;
+                padding: 8rpx 16rpx;
+                box-sizing: border-box;
+                height: 64rpx;
+                display: flex;
+                align-items: center;
+                border: 1rpx solid #e0e0e0;
+                border-radius: 12rpx;
+
+                .input-placeholder {
+                    color: #999;
+                    font-size: 28rpx;
+                }
+            }
+
+            &.query-action {
+                margin-top: 50rpx;
+                display: flex;
+                justify-content: space-between;
+                gap: 24rpx;
+
+                .cancel-btn,
+                .query-btn {
+                    height: 60rpx;
+                    width: 150rpx;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    font-size: 28rpx;
+                    border-radius: 12rpx;
+                    transition: all 0.3s ease;
+                    margin: 0;
+                }
+
+                .cancel-btn {
+                    background: #f8f8f8;
+                    color: #666;
+                }
+
+                .query-btn {
+                    background: linear-gradient(135deg, #409eff 0%, #626aef 100%);
+                    color: #fff;
+                }
+            }
+        }
     }
 }
 </style>

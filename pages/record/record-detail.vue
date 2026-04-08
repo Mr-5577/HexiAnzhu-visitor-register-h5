@@ -3,91 +3,57 @@
         <view class="detail-card">
             <!-- 标题 -->
             <view class="title-section">
-                <text class="main-title">成都和喜·域峰到访确认单</text>
+                <text class="main-title">{{ detailData.projectName || '-' }}</text>
                 <text class="sub-title">Visit Confirmation Form</text>
             </view>
-
+            <!-- 来访信息 -->
+            <view class="info-section">
+                <view class="section-title">基本信息</view>
+                <view class="info-row">
+                    <text class="label">来访时间：</text>
+                    <text class="value">{{ detailData.visitTime || '-' }}</text>
+                </view>
+                <view class="info-row">
+                    <text class="label">到访人数：</text>
+                    <text class="value">{{ detailData.visitNum || '-' }}人</text>
+                </view>
+                <view class="info-row">
+                    <text class="label">客户名：</text>
+                    <text class="value">{{ detailData.custName || '-' }}</text>
+                </view>
+                <view class="info-row">
+                    <text class="label">客户电话：</text>
+                    <text class="value">{{ detailData.custTel || '-' }}</text>
+                </view>
+                <view class="info-row">
+                    <text class="label">客户电话2：</text>
+                    <text class="value">{{ detailData.custTel2 || '-' }}</text>
+                </view>
+                <view class="info-row">
+                    <text class="label">带访人：</text>
+                    <text class="value">{{ detailData.bringMan || '-' }}</text>
+                </view>
+                <view class="info-row">
+                    <text class="label">带访人电话：</text>
+                    <text class="value">{{ detailData.bringTel || '-' }}</text>
+                </view>
+            </view>
             <!-- 甲方信息 -->
             <view class="info-section">
                 <view class="section-title">甲方信息</view>
                 <view class="info-row">
                     <text class="label">甲方：</text>
-                    <text class="value">成都和安瑞成房地产开发有限公司</text>
-                </view>
-                <view class="info-row">
-                    <text class="label">联系地址：</text>
-                    <text class="value">成都市成华区建设路三段88号</text>
+                    <text class="value">{{ detailData.visitComName || '-' }}</text>
                 </view>
             </view>
-
             <!-- 乙方信息 -->
             <view class="info-section">
                 <view class="section-title">乙方信息</view>
                 <view class="info-row">
                     <text class="label">乙方：</text>
-                    <text class="value">{{ detailData.channelCompany || '*****渠道公司' }}</text>
+                    <text class="value">{{ detailData.reportCom || '-' }}</text>
                 </view>
             </view>
-
-            <!-- 来访信息 -->
-            <view class="info-section">
-                <view class="section-title">来访信息</view>
-                <view class="info-row">
-                    <text class="label">来访时间：</text>
-                    <text class="value">{{ detailData.visitTime }}</text>
-                </view>
-                <view class="info-row">
-                    <text class="label">到访人数：</text>
-                    <text class="value">{{ detailData.visitorCount || '4' }}人</text>
-                </view>
-                <view class="info-row">
-                    <text class="label">来访方式：</text>
-                    <text class="value">{{ detailData.visitMethod || '自驾' }}</text>
-                </view>
-                <view class="info-row">
-                    <text class="label">来访类型：</text>
-                    <text class="value">{{ detailData.visitType || '自然来访' }}</text>
-                </view>
-            </view>
-
-            <!-- 客户信息 -->
-            <view class="info-section">
-                <view class="section-title">客户信息</view>
-                <view class="info-row">
-                    <text class="label">客户名：</text>
-                    <text class="value">{{ detailData.customerName }}</text>
-                </view>
-                <view class="info-row">
-                    <text class="label">客户电话：</text>
-                    <view class="value phone-list">
-                        <text v-for="(phone, index) in customerPhones" :key="index" class="phone-item">
-                            {{ phone }}
-                        </text>
-                    </view>
-                </view>
-                <view class="info-row" v-if="detailData.relation">
-                    <text class="label">客户关系：</text>
-                    <text class="value">{{ detailData.relation }}</text>
-                </view>
-                <view class="info-row" v-if="detailData.channel">
-                    <text class="label">客户渠道：</text>
-                    <text class="value">{{ detailData.channel }}</text>
-                </view>
-            </view>
-
-            <!-- 带访人信息 -->
-            <view class="info-section">
-                <view class="section-title">带访人信息</view>
-                <view class="info-row">
-                    <text class="label">带访人：</text>
-                    <text class="value">{{ detailData.consultantName || '未分配' }}</text>
-                </view>
-                <view class="info-row">
-                    <text class="label">带访人电话：</text>
-                    <text class="value">{{ detailData.consultantPhone || '158****0000' }}</text>
-                </view>
-            </view>
-
             <!-- 底部按钮 -->
             <view class="button-group">
                 <!-- <button class="back-btn" @click="goBack">返回</button> -->
@@ -98,39 +64,12 @@
 </template>
 
 <script setup>
+import { onLoad } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
+import { visitorRegisterApi } from '@/common/api.js'
 
 // 详情数据
-const detailData = ref({
-    id: null,
-    customerName: '',
-    customerPhone: '',
-    consultantName: '',
-    consultantPhone: '',
-    visitTime: '',
-    visitMethod: '',
-    visitType: '',
-    relation: '',
-    channel: '',
-    visitorCount: 4,
-    channelCompany: ''
-})
-
-// 客户电话列表（支持多个电话）
-const customerPhones = computed(() => {
-    if (!detailData.value.customerPhone) return []
-    // 如果电话包含多个，用换行或空格分割
-    if (detailData.value.customerPhone.includes('\n')) {
-        return detailData.value.customerPhone.split('\n')
-    }
-    if (detailData.value.customerPhone.includes(' ')) {
-        return detailData.value.customerPhone.split(' ')
-    }
-    return [detailData.value.customerPhone]
-})
-
-// 当前日期
-const currentDate = ref('')
+const detailData = ref({})
 
 // 获取详情数据
 const getDetailData = () => {
@@ -139,73 +78,13 @@ const getDetailData = () => {
     const currentPage = pages[pages.length - 1]
     const options = currentPage.$page?.options || {}
     const id = options.id
-
+    console.log('options', options)
     if (!id) {
         uni.showToast({
             title: '参数错误',
             icon: 'none'
         })
         return
-    }
-
-    const mockData = {
-        1: {
-            id: 1,
-            customerName: '张三',
-            customerPhone: '138****0000\n158****0001',
-            consultantName: 'AAAAA-小王',
-            consultantPhone: '139****8888',
-            visitTime: '2024-01-15 14:30',
-            visitMethod: '自驾',
-            visitType: '自然来访',
-            relation: '客户',
-            channel: '门店',
-            visitorCount: 4,
-            channelCompany: '成都兴和渠道公司'
-        },
-        2: {
-            id: 2,
-            customerName: '李四',
-            customerPhone: '139****1111',
-            consultantName: 'BBBBB-小李',
-            consultantPhone: '137****6666',
-            visitTime: '2024-01-15 10:15',
-            visitMethod: '步行',
-            visitType: '渠道来访',
-            relation: '朋友',
-            channel: '介绍',
-            visitorCount: 2,
-            channelCompany: '成都众信渠道公司'
-        },
-        3: {
-            id: 3,
-            customerName: '王五',
-            customerPhone: '137****2222',
-            consultantName: '',
-            consultantPhone: '',
-            visitTime: '2024-01-14 16:45',
-            visitMethod: '打车',
-            visitType: '自然来访',
-            relation: '客户',
-            channel: '电约',
-            visitorCount: 3,
-            channelCompany: ''
-        }
-    }
-
-    detailData.value = mockData[id] || {
-        id: parseInt(id),
-        customerName: '张三',
-        customerPhone: '158****0000\n158****0001',
-        consultantName: '渠道人2',
-        consultantPhone: '158****0000',
-        visitTime: '2026-03-25 18:00',
-        visitMethod: '自驾',
-        visitType: '自然来访',
-        relation: '客户',
-        channel: '门店',
-        visitorCount: 4,
-        channelCompany: '*****渠道公司'
     }
 }
 
@@ -231,37 +110,64 @@ const handlePrint = () => {
         }
     })
 }
-
-// 设置当前日期
-const setCurrentDate = () => {
-    const now = new Date()
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    currentDate.value = `${year}-${month}-${day}`
+// 获取项目数据
+const fetchGetProjList = async () => {
+    try {
+        const res = await visitorRegisterApi.getProjList()
+        if (res.code === 200) {
+            const data = res.data || []
+            const targetData = data.find(item => item.projId === detailData.value.visitProjId)
+            if (targetData) {
+                detailData.value.projectId = targetData.projId
+                detailData.value.projectName = targetData.projName
+            }
+        }
+    } catch (error) {
+        projectList.value = []
+    }
 }
-
-onMounted(() => {
-    getDetailData()
-    setCurrentDate()
+const getDetailById = async (id) => {
+    try {
+        const res = await visitorRegisterApi.getVisitHis({ id: id })
+        if (res.code === 200) {
+            const data = res.data || []
+            const [firastData] = data
+            detailData.value = firastData || {}
+        }
+    } catch (error) {
+    }
+}
+onLoad(async (options) => {
+    if (options.id) {
+        await getDetailById(options.id)
+        await fetchGetProjList()
+    }
 })
+onMounted(() => { })
 </script>
 
 <style scoped lang="scss">
 page {
     background-color: #f5f5f5;
-    padding: 20rpx;
+    height: 100%;
 }
 
 .detail-container {
-    min-height: 100vh;
+    width: 100%;
+    height: 100%;
+    padding: 20rpx;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
 }
 
 .detail-card {
     background-color: #fff;
     border-radius: 20rpx;
     padding: 40rpx 30rpx;
+    box-sizing: border-box;
     box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+    flex: 1;
 
     .title-section {
         text-align: center;

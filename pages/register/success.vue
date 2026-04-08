@@ -2,63 +2,63 @@
     <view class="register-success">
         <view class="property-consultant">
             <text class="title">置业顾问</text>
-            <text class="name">{{ currentConsultant.name || 'AAAAA-小王' }}</text>
+            <text class="name">{{ detailData.salerName || '-' }}</text>
         </view>
         <view class="register-detail">
             <view class="detail-card">
                 <view class="detail-row">
                     <text class="detail-label">客户姓名：</text>
-                    <text class="detail-value">{{ formData.customerName || '-' }}</text>
+                    <text class="detail-value">{{ detailData.custName || '-' }}</text>
                 </view>
                 <view class="detail-row">
                     <text class="detail-label">客户电话：</text>
-                    <text class="detail-value">{{ formData.customerPhone || '-' }}</text>
+                    <text class="detail-value">{{ detailData.custTel || '-' }}</text>
                 </view>
                 <view class="detail-row">
-                    <text class="detail-label">备用电话：</text>
-                    <text class="detail-value">{{ formData.backupPhone || '无' }}</text>
+                    <text class="detail-label">客户电话2：</text>
+                    <text class="detail-value">{{ detailData.custTel2 || '-' }}</text>
                 </view>
                 <view class="detail-row">
                     <text class="detail-label">到访人数：</text>
-                    <text class="detail-value">{{ formData.visitorCount || '0' }}人</text>
+                    <text class="detail-value">{{ detailData.visitNum || '-' }}人</text>
                 </view>
             </view>
             <view class="detail-card">
                 <view class="detail-row">
                     <text class="detail-label">来访方式：</text>
-                    <text class="detail-value">{{ formData.visitMethod || '-' }}</text>
+                    <text class="detail-value">{{ detailData.visitTypeName || '-' }}</text>
                 </view>
-                <view class="detail-row" v-if="formData.referrer">
-                    <text class="detail-label">带访人：</text>
-                    <text class="detail-value">{{ formData.referrer || '-' }}</text>
-                </view>
-                <view class="detail-row" v-if="formData.referrerPhone">
-                    <text class="detail-label">带访电话：</text>
-                    <text class="detail-value">{{ formData.referrerPhone || '-' }}</text>
-                </view>
-                <view class="detail-row" v-if="formData.reporter">
-                    <text class="detail-label">报备人：</text>
-                    <text class="detail-value">{{ formData.reporter || '-' }}</text>
-                </view>
-                <view class="detail-row" v-if="formData.reportTime">
-                    <text class="detail-label">报备时间：</text>
-                    <text class="detail-value">{{ formData.reportTime || '-' }}</text>
-                </view>
+                <!-- 渠道来访展示一下信息 channel：渠道来访   natural：自然来访 -->
+                <template v-if="detailData.visitType == 'channel'">
+                    <view class="detail-row">
+                        <text class="detail-label">带访人：</text>
+                        <text class="detail-value">{{ detailData.bringMan || '-' }}</text>
+                    </view>
+                    <view class="detail-row">
+                        <text class="detail-label">带访电话：</text>
+                        <text class="detail-value">{{ detailData.bringTel || '-' }}</text>
+                    </view>
+                    <view class="detail-row">
+                        <text class="detail-label">报备人：</text>
+                        <text class="detail-value">{{ detailData.reporter || '-' }}</text>
+                    </view>
+                    <view class="detail-row">
+                        <text class="detail-label">报备时间：</text>
+                        <text class="detail-value">{{ detailData.reportTime || '-' }}</text>
+                    </view>
+                </template>
+
                 <view class="detail-row">
                     <text class="detail-label">到访时间：</text>
-                    <text class="detail-value">{{ formData.visitTime || '-' }}</text>
+                    <text class="detail-value">{{ detailData.visitTime || '-' }}</text>
                 </view>
                 <view class="detail-row">
-                    <text class="detail-label">人员关系：</text>
-                    <text class="detail-value">{{ getRelationText(formData.relation) }}</text>
-                </view>
-                <view class="detail-row">
-                    <text class="detail-label">来访渠道：</text>
-                    <text class="detail-value">{{ getChannelText(formData.channel) }}</text>
+                    <text class="detail-label">知晓途径：</text>
+                    <text class="detail-value">{{ detailData.knowWayName || '' }}</text>
                 </view>
                 <view class="detail-row">
                     <text class="detail-label">售楼部：</text>
-                    <text class="detail-value">{{ formData.salesOffice || '-' }}</text>
+                    <text class="detail-value">{{ detailData.visitProjName || '-' }}</text>
                 </view>
             </view>
         </view>
@@ -83,31 +83,31 @@
             </view>
 
             <!-- 搜索框 -->
-            <view class="search-box">
-                <input class="search-input" v-model="searchKeyword" placeholder="搜索置业顾问姓名/工号" @input="handleSearch" />
+            <!-- <view class="search-box">
+                <input class="search-input" v-model="searchKeyword" placeholder="搜索置业顾问姓名" @input="handleSearch" />
                 <uni-icons type="search" size="18" color="#999" class="search-icon" />
-            </view>
+            </view> -->
 
             <scroll-view class="consultant-list" scroll-y>
-                <view v-for="item in filteredConsultantList" :key="item.id" class="consultant-item"
-                    :class="{ 'consultant-item-active': selectedConsultantId === item.id }"
+                <view v-for="item in filteredConsultantList" :key="item.salerId" class="consultant-item"
+                    :class="{ 'consultant-item-active': selectedConsultantId === item.salerId }"
                     @click="selectConsultant(item)">
                     <view class="consultant-info">
-                        <view class="consultant-name">{{ item.name }}</view>
+                        <view class="consultant-name">{{ item.salerName }}</view>
                         <view class="consultant-detail">
-                            <text class="consultant-dept">{{ item.department }}</text>
-                            <text class="consultant-phone">{{ item.phone }}</text>
+                            <text class="consultant-dept">{{ item.projName }}</text>
+                            <text class="consultant-name">{{ item.teamName }}</text>
                         </view>
                     </view>
                     <view class="select-icon">
-                        <uni-icons :type="selectedConsultantId === item.id ? 'checkmarkempty' : 'circle'" size="20"
-                            :color="selectedConsultantId === item.id ? '#007AFF' : '#ccc'" />
+                        <uni-icons :type="selectedConsultantId === item.salerId ? 'checkmarkempty' : 'circle'" size="20"
+                            :color="selectedConsultantId === item.salerId ? '#007AFF' : '#ccc'" />
                     </view>
                 </view>
 
                 <!-- 空状态 -->
                 <view v-if="filteredConsultantList.length === 0" class="empty-state">
-                    <text class="empty-text">暂无匹配的置业顾问</text>
+                    <text class="empty-text">暂无置业顾问数据</text>
                 </view>
             </scroll-view>
 
@@ -122,114 +122,90 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { visitorRegisterApi } from '@/common/api.js'
+import { onLoad } from '@dcloudio/uni-app'
 
-// 接收页面参数
-const props = defineProps({
-    formData: {
-        type: Object,
-        default: () => ({})
-    }
+// 多个根节点会警告，禁用属性继承 可以消除警告
+defineOptions({
+    inheritAttrs: false
 })
-
-// 当前置业顾问
-const currentConsultant = ref({
-    id: 1,
-    name: 'AAAAA-小王',
-    department: '销售一部',
-    phone: '138****0000'
+const detailData = ref({
+    id: '',
+    visitType: '',
+    custName: "",
+    custTel: "",
+    custTel2: "",
+    visitNum: 0,
+    visitTypeId: "",
+    visitTypeName: "",
+    bringMan: "",
+    bringTel: "",
+    reportId: "",
+    reporter: "",
+    reportTime: "",
+    visitTime: "",
+    visitProjId: '',
+    visitProjName: "",
+    knowWayId: "",
+    knowWayName: "",
+    salerId: "",
+    salerName: "",
 })
 
 // 弹窗引用
 const reassignPopupRef = ref(null)
 
 // 置业顾问列表
-const consultantList = ref([
-    {
-        id: 1,
-        name: 'AAAAA-小王',
-        department: '销售一部',
-        phone: '138****0000'
-    },
-    {
-        id: 2,
-        name: 'BBBBB-小李',
-        department: '销售一部',
-        phone: '139****1111'
-    },
-    {
-        id: 3,
-        name: 'CCCCC-小张',
-        department: '销售二部',
-        phone: '137****2222'
-    },
-    {
-        id: 4,
-        name: 'DDDDD-小赵',
-        department: '销售二部',
-        phone: '136****3333'
-    },
-    {
-        id: 5,
-        name: 'EEEEE-小刘',
-        department: '销售三部',
-        phone: '135****4444'
-    }
-])
-
+const consultantList = ref([])
 // 搜索关键词
 const searchKeyword = ref('')
-
 // 选中的顾问
 const selectedConsultantId = ref(null)
 const selectedConsultantData = ref(null)
-
 // 过滤后的顾问列表
 const filteredConsultantList = computed(() => {
     if (!searchKeyword.value) {
         return consultantList.value
     }
     return consultantList.value.filter(item =>
-        item.name.includes(searchKeyword.value) ||
-        item.phone.includes(searchKeyword.value)
+        item.name.includes(searchKeyword.value)
     )
 })
-
 // 搜索
 const handleSearch = () => {
     // 搜索时清空选中状态
     selectedConsultantId.value = null
     selectedConsultantData.value = null
 }
-
 // 选择顾问
 const selectConsultant = (item) => {
-    if (selectedConsultantId.value === item.id) {
+    if (selectedConsultantId.value === item.salerId) {
         // 取消选中
         selectedConsultantId.value = null
         selectedConsultantData.value = null
     } else {
         // 选中
-        selectedConsultantId.value = item.id
+        selectedConsultantId.value = item.salerId
         selectedConsultantData.value = item
     }
 }
-
 // 打开重新分配弹窗
-const openReassignPopup = () => {
-    // 重置状态
-    searchKeyword.value = ''
-    selectedConsultantId.value = null
-    selectedConsultantData.value = null
+const openReassignPopup = async () => {
     reassignPopupRef.value.open()
 }
 
 // 关闭弹窗
 const closeReassignPopup = () => {
+    // 重置状态
+    searchKeyword.value = ''
+    selectedConsultantId.value = null
+    selectedConsultantData.value = null
+    // 关闭弹窗
     reassignPopupRef.value.close()
 }
 
 // 确认分配
-const confirmReassign = () => {
+const confirmReassign = async () => {
     if (!selectedConsultantData.value) {
         uni.showToast({
             title: '请选择置业顾问',
@@ -237,50 +213,88 @@ const confirmReassign = () => {
         })
         return
     }
-
-    // 更新当前顾问
-    currentConsultant.value = selectedConsultantData.value
-
-    // 关闭弹窗
-    closeReassignPopup()
-
-    // 提示成功
-    uni.showToast({
-        title: `已分配给${selectedConsultantData.value.name}`,
-        icon: 'success'
-    })
-
-    // 可以在这里调用API，更新分配信息
-    console.log('重新分配成功:', selectedConsultantData.value)
+    try {
+        const params = {
+            visitRecIds: [detailData.value.id], // 来访登记成功的记录数据ID
+            salerId: selectedConsultantId.value // 置业顾问ID
+        }
+        const res = await visitorRegisterApi.batchResetSaler(params)
+        if (res.code === 200) {
+            // await new Promise(resolve => setTimeout(resolve, 500))
+            // 更新分配的顾问信息
+            const targetData = consultantList.value.find((item) => item.salerId === selectedConsultantId.value)
+            if (targetData) {
+                detailData.value.salerId = targetData.salerId || ''
+                detailData.value.salerName = targetData.salerName || ''
+            }
+            closeReassignPopup() // 关闭选择顾问弹窗
+            uni.showToast({
+                title: `${res.message || '分配成功'}`,
+                icon: 'none'
+            })
+        }
+    } catch (error) { }
 }
 
 // 继续登记,跳转到登记页面
 const continueRegister = () => {
-    uni.navigateTo({
+    uni.switchTab({
         url: '/pages/register/index'
     })
 }
-
-// 获取关系文本
-const getRelationText = (value) => {
-    const map = {
-        customer: '客户',
-        relative: '亲戚',
-        friend: '朋友'
+const getRecDetailById = async (id) => {
+    try {
+        const res = await visitorRegisterApi.getVisitHis({ id: id })
+        if (res.code === 200) {
+            const data = res.data || []
+            const [firastData] = data
+            const targetData = consultantList.value.find((item) => item.salerId === firastData.salerId)
+            if (targetData) {
+                detailData.value.salerId = targetData.salerId || ''
+                detailData.value.salerName = targetData.salerName || ''
+            }
+        }
+    } catch (error) {
     }
-    return map[value] || value
 }
+// 通过选中的项目ID获取对应项目的 置业顾问列表
+const fetchGetSalerList = async () => {
+    consultantList.value = []
+    try {
+        const res = await visitorRegisterApi.getSalerList({ projId: detailData.value.visitProjId })
+        if (res.code === 200) {
+            const dataList = res.data || []
+            consultantList.value = dataList.map((item) => {
+                return {
+                    ...item,
+                    name: item.salerName
+                }
+            })
+        }
+    } catch (error) {
 
-// 获取渠道文本
-const getChannelText = (value) => {
-    const map = {
-        store: '门店',
-        phone: '电约',
-        referral: '介绍',
-        develop: '拓展'
     }
-    return map[value] || value
 }
+onLoad(async (options) => {
+    console.log(options)
+    const data = uni.getStorageSync('registerSuccessData')
+    if (data) {
+        detailData.value = {
+            ...detailData.value,
+            ...data
+        }
+        // 读取后清除，避免下次进入还显示旧数据
+        // uni.removeStorageSync('registerSuccessData')
+
+        // 根据选择的项目ID，获取置业顾问列表
+        await fetchGetSalerList()
+    }
+    // 得到置业顾问ID
+    if (options.id) {
+        detailData.value.id = options.id
+        getRecDetailById(options.id)
+    }
+})
 </script>
 
 <style scoped lang="scss">
@@ -343,7 +357,7 @@ page {
 
             .detail-label {
                 color: #666;
-                width: 140rpx;
+                width: 160rpx;
                 flex-shrink: 0;
                 text-align: right;
             }
@@ -498,7 +512,7 @@ page {
                 gap: 24rpx;
 
                 .consultant-dept,
-                .consultant-phone {
+                .consultant-name {
                     font-size: 24rpx;
                     color: #999;
                 }

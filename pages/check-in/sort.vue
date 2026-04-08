@@ -7,23 +7,14 @@
                     <picker mode="selector" :range="projectList" range-key="name" :value="selectedProjectIndex"
                         @change="onProjectChange" style="width: 100%;">
                         <view class="search-picker">
-                            {{ selectedProjectName || '请选择项目' }}
+                            {{ selectedProject?.name || '请选择项目' }}
                         </view>
                     </picker>
                 </view>
-
-                <view class="search-item">
-                    <picker mode="selector" :range="sortTypeList" :value="selectedSortType" @change="onSortTypeChange"
-                        style="width: 100%;">
-                        <view class="search-picker">
-                            {{ sortTypeList[selectedSortType] }}
-                        </view>
-                    </picker>
+                <view class="search-buttons">
+                    <!-- <button class="reset-btn" @click="resetSort">重置</button> -->
+                    <button class="search-btn" @click="handleSearch">查询</button>
                 </view>
-            </view>
-            <view class="search-buttons">
-                <button class="reset-btn" @click="resetSort">重置</button>
-                <button class="search-btn" @click="handleSearch">查询</button>
             </view>
         </view>
         <!-- 营销人员列表 -->
@@ -36,13 +27,13 @@
                     <text class="header-item drag-header">拖动排序</text>
                 </view>
 
-                <view v-for="(item, index) in list" :key="item.id" class="list-item">
+                <view v-for="(item, index) in listData" :key="item.id" class="list-item">
                     <view class="sort-number">
                         <text class="sort-text">{{ index + 1 }}</text>
                     </view>
 
                     <view class="name-content">
-                        <text class="name-text">{{ item.name }}</text>
+                        <text class="name-text">{{ item.salerName }}</text>
                     </view>
 
                     <view class="team-content">
@@ -55,84 +46,84 @@
                 </view>
             </view>
             <!-- 空状态 -->
-            <view v-if="list.length === 0" class="empty-state">
+            <view v-if="listData.length === 0" class="empty-state">
                 <text class="empty-text">暂无数据</text>
             </view>
         </view>
         <!-- 保存按钮 -->
         <view class="save-section">
-            <button class="save-btn" @click="saveSortOrder">保存排序</button>
+            <button class="save-btn" @click="saveSort">保存排序</button>
         </view>
     </view>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import Sortable from 'sortablejs'
+import { visitorRegisterApi } from '@/common/api.js'
 
 // 项目列表
-const projectList = ref([
-    { id: 1, name: '阳光花园项目' },
-    { id: 2, name: '滨海新城项目' },
-    { id: 3, name: '中央公园项目' },
-    { id: 4, name: '翡翠湾项目' }
-])
+const projectList = ref([])
+// 获取项目数据
+const fetchGetProjList = async () => {
+    try {
+        const res = await visitorRegisterApi.getProjList()
+        if (res.code === 200) {
+            const data = res.data || []
+            const newData = data.map((item) => {
+                return {
+                    ...item,
+                    id: item.projId,
+                    name: item.projName
+                }
+            })
+            projectList.value = newData
+        }
+    } catch (error) {
+        projectList.value = []
+    }
+}
 // 选中的项目索引
 const selectedProjectIndex = ref(0)
-const selectedProjectName = computed(() => projectList.value[selectedProjectIndex.value]?.name)
+const selectedProject = computed(() => projectList.value[selectedProjectIndex.value])
 // 项目切换
 const onProjectChange = (e) => {
     const index = e.detail.value
     selectedProjectIndex.value = index
 }
 
-// 排序类型列表
-const sortTypeList = ref(['默认排序', '手动排序'])
-// 选中的排序类型
-const selectedSortType = ref(0)
-// 排序类型切换
-const onSortTypeChange = (e) => {
-    const index = e.detail.value
-    selectedSortType.value = index
-}
-
 // 重置查询
 const resetSort = () => {
-    // 重置项目、排序类型为默认
-    selectedSortType.value = 0
+    // 重置项目为默认
     selectedProjectIndex.value = 0
+    handleSearch()
 }
 
 // 查询
 const handleSearch = () => {
+    fetchSortList()
 }
 
-
 // 列表数据
-const list = ref([
-    { id: 101, name: '张三', teamName: '营销一部' },
-    { id: 102, name: '李四', teamName: '营销二部' },
-    { id: 103, name: '王五', teamName: '营销一部' },
-    { id: 104, name: '赵六', teamName: '营销三部' },
-    { id: 105, name: '钱七', teamName: '营销二部' },
-    { id: 106, name: '孙八', teamName: '营销一部' },
-    { id: 107, name: '周九', teamName: '营销一部' },
-    { id: 108, name: '吴十', teamName: '营销一部' },
-    { id: 109, name: '郑十一', teamName: '营销一部' },
-    { id: 110, name: '王十二', teamName: '营销一部' },
-    { id: 112, name: '孙八', teamName: '营销一部' },
-    { id: 113, name: '周九', teamName: '营销一部' },
-    { id: 114, name: '周九', teamName: '营销一部' },
-    { id: 115, name: '周九', teamName: '营销一部' },
-    { id: 116, name: '周九', teamName: '营销一部' },
-    { id: 117, name: '周九', teamName: '营销一部' },
-])
+const listData = ref([])
+// 查询列表
+const fetchSortList = async () => {
+    const id = selectedProject.value?.id || ''
+    if (!id) return
+    listData.value = []
+    try {
+        const res = await visitorRegisterApi.getSalerList({ projId: id })
+        if (res.code === 200) {
+            listData.value = res.data || []
+        }
+    } catch (error) {
+    }
+}
 
 let sortableInstance = null
 const initSortable = () => {
     // 销毁旧实例
     destroySortable()
-
     const container = document.getElementById('listWrapper')
     if (container) {
         sortableInstance = new Sortable(container, {
@@ -147,7 +138,7 @@ const initSortable = () => {
             scroll: true,               // 自动滚动
             scrollSensitivity: 30,      // 边缘滚动阈值
             scrollSpeed: 10,            // 滚动速度
-            
+
             // 设置拖拽时排除表头
             filter: '.list-header',
             preventOnFilter: false,
@@ -162,7 +153,7 @@ const initSortable = () => {
             ghostClass: 'sortable-ghost',    // 占位符样式
             dragClass: 'sortable-drag',      // 拖拽元素样式
             chosenClass: 'sortable-chosen',  // 选中元素样式
-            
+
             // 拖拽开始回调
             onStart: () => {
                 console.log('开始拖拽')
@@ -170,13 +161,27 @@ const initSortable = () => {
             // 拖拽结束回调
             onEnd: (evt) => {
                 // 拖拽结束后更新数据顺序
-                // const item = list.value.splice(evt.oldIndex, 1)[0]
-                // list.value.splice(evt.newIndex, 0, item)
-                console.log('新顺序:', list.value.map(i => i.name))
+                const oldIndex = evt.oldIndex - 1
+                const newIndex = evt.newIndex - 1
+                const item = listData.value.splice(oldIndex, 1)[0]
+                listData.value.splice(newIndex, 0, item)
+                // console.log('新顺序:', listData.value.map(i => i.name))
             },
             // 设置元素位置
             setData: (dataTransfer, dragEl) => {
                 // dataTransfer.effectAllowed = 'move'
+            },
+            onUpdate: (evt) => {
+                // console.log('拖拽更新', evt)
+            },
+            onMove: (evt) => {
+                // console.log('拖拽移动', evt)
+            },
+            onFilter: (evt) => {
+                // console.log('拖拽过滤', evt)
+            },
+            onChoose: (evt) => {
+                // console.log('拖拽选中', evt)
             }
         })
     }
@@ -191,9 +196,31 @@ const destroySortable = () => {
 }
 
 // 保存排序
-const saveSortOrder = async () => { }
+const saveSort = async () => {
+    console.log(listData.value)
+    try {
+        let params = []
+        listData.value.forEach((item, index) => {
+            params.push({
+                id: item.id,
+                absort: index + 1
+            })
+        })
+        const res = await visitorRegisterApi.batchSaveSalerAbsort({ salerList: params })
+        if (res.code === 200) {
+            uni.showToast({
+                title: `${res.message || '保存成功!'}`,
+                icon: 'none'
+            })
+            fetchSortList()
+        }
+    } catch (error) {
+    }
+}
 
-onMounted(() => {
+onMounted(async () => {
+    await fetchGetProjList()
+    await fetchSortList()
     initSortable()
 })
 
@@ -229,7 +256,6 @@ page {
     .search-row {
         display: flex;
         gap: 20rpx;
-        margin-bottom: 20rpx;
 
         .search-item {
             flex: 1;
@@ -240,8 +266,8 @@ page {
             .search-picker {
                 flex: 1;
                 width: 100%;
-                height: 64rpx;
-                line-height: 64rpx;
+                height: 60rpx;
+                line-height: 60rpx;
                 background-color: #f5f5f5;
                 border-radius: 10rpx;
                 padding: 0 20rpx;
@@ -268,17 +294,18 @@ page {
 
         .reset-btn,
         .search-btn {
-            width: 180rpx;
-            height: 64rpx;
-            line-height: 64rpx;
+            width: 140rpx;
+            height: 60rpx;
+            line-height: 60rpx;
             font-size: 28rpx;
-            border-radius: 36rpx;
+            border-radius: 12rpx;
             border: none;
             padding: 0;
             margin: 0;
 
             &::after {
                 border: none;
+                height: 56rpx;
             }
         }
 
@@ -415,7 +442,7 @@ page {
 .save-section {
     flex-shrink: 0;
     background: transparent;
-    padding: 20rpx 30rpx 40rpx;
+    padding: 20rpx 30rpx 30rpx;
     box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 

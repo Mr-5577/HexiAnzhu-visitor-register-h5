@@ -3,22 +3,23 @@
         :is-mask-click="false" :style="{ zIndex: 999 }">
         <view class="popup-contain">
             <view class="popup-top">
-                <text class="popup-title">选择报备信息</text>
-                <uni-icons type="closeempty" size="18" class="close-btn" @click="closePopup"></uni-icons>
+                <text class="popup-title">报备记录</text>
+                <uni-icons type="closeempty" size="18" color="#666" class="close-btn" @click="closePopup"></uni-icons>
             </view>
 
             <!-- 查询表单 -->
             <view class="search-form">
                 <view class="search-row">
                     <view class="search-item">
-                        <picker style="z-index: 9999;width: 100%;" mode="selector" :range="reportTypeList"
-                            @change="onReportTypeChange">
-                            <view class="search-picker">
-                                {{ searchForm.reportType || '报备方式' }}
-                            </view>
-                        </picker>
+                        <input class="search-input" v-model="searchForm.custName" placeholder="客户姓名" />
                     </view>
 
+                    <view class="search-item">
+                        <input class="search-input" v-model="searchForm.custTel" placeholder="客户电话" />
+                    </view>
+                </view>
+
+                <view class="search-row">
                     <view class="search-item">
                         <picker style="z-index: 9999;width: 100%;" mode="date" :value="searchForm.reportTime"
                             @change="onReportTimeSearchChange">
@@ -26,12 +27,6 @@
                                 {{ searchForm.reportTime || '报备时间' }}
                             </view>
                         </picker>
-                    </view>
-                </view>
-
-                <view class="search-row">
-                    <view class="search-item">
-                        <input class="search-input" v-model="searchForm.customerName" placeholder="客户姓名/报备号码" />
                     </view>
 
                     <view class="search-item search-buttons">
@@ -43,8 +38,8 @@
 
             <scroll-view class="popup-content" scroll-y>
                 <!-- 报备列表 -->
-                <view class="report-list" v-if="filteredReportList.length > 0">
-                    <view v-for="(item, index) in filteredReportList" :key="index" class="report-item"
+                <view class="report-list" v-if="reportList.length > 0">
+                    <view v-for="(item, index) in reportList" :key="index" class="report-item"
                         :class="{ 'report-item-active': selectedReportId === item.id }" @click="selectReport(item)">
                         <view class="report-detail">
                             <view class="select-icon">
@@ -52,24 +47,24 @@
                                     :color="selectedReportId === item.id ? '#007AFF' : '#ccc'" />
                             </view>
                             <view class="detail-row">
+                                <text class="detail-label">渠道公司：</text>
+                                <text class="detail-value">{{ item.reportCom }}</text>
+                            </view>
+                            <view class="detail-row">
                                 <text class="detail-label">报备人：</text>
-                                <text class="detail-value">{{ item.reporter }}</text>
+                                <text class="detail-value">{{ item.reportMan }}</text>
                             </view>
                             <view class="detail-row">
                                 <text class="detail-label">客户姓名：</text>
-                                <text class="detail-value">{{ item.customerName }}</text>
+                                <text class="detail-value">{{ item.custName }}</text>
                             </view>
                             <view class="detail-row">
                                 <text class="detail-label">客户电话：</text>
-                                <text class="detail-value">{{ item.customerPhone }}</text>
+                                <text class="detail-value">{{ item.custTel }}</text>
                             </view>
                             <view class="detail-row">
                                 <text class="detail-label">报备时间：</text>
                                 <text class="detail-value">{{ item.reportTime }}</text>
-                            </view>
-                            <view class="detail-row" v-if="item.reportType">
-                                <text class="detail-label">报备方式：</text>
-                                <text class="detail-value">{{ item.reportType }}</text>
                             </view>
                         </view>
                     </view>
@@ -81,7 +76,7 @@
                 </view>
             </scroll-view>
 
-            <view class="popup-bottom" v-if="filteredReportList.length > 0">
+            <view class="popup-bottom" v-if="reportList.length > 0">
                 <button class="submit-btn" :disabled="!selectedReportData" @click="confirmSelection">
                     确定选择
                 </button>
@@ -91,80 +86,34 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { visitorRegisterApi } from '@/common/api.js'
+
+const props = defineProps({
+    projectId: {
+        type: [String, Number],
+    }
+})
+
+// 定义事件
+const emit = defineEmits(['reportSelected'])
 
 // 弹窗引用
 const popupRef = ref(null)
 
-// 报备方式列表
-const reportTypeList = ref(['全部', '渠道报备', '自然来访', '老带新'])
-
 // 查询表单
 const searchForm = ref({
-    reportType: '',
-    reportTime: '',
-    customerName: ''
+    custTel: '',
+    custName: '',
+    reportTime: ''
 })
 
-// 原始报备列表数据
-const originalReportList = ref([
-    {
-        id: 1,
-        reporter: '张三',
-        customerName: '李四',
-        customerPhone: '138****0000',
-        reportTime: '2024-01-15',
-        reportType: '渠道报备'
-    },
-    {
-        id: 2,
-        reporter: '王五',
-        customerName: '赵六',
-        customerPhone: '139****1111',
-        reportTime: '2024-01-14',
-        reportType: '自然来访'
-    },
-    {
-        id: 3,
-        reporter: '陈七',
-        customerName: '周八',
-        customerPhone: '137****2222',
-        reportTime: '2024-01-13',
-        reportType: '老带新'
-    },
-    {
-        id: 4,
-        reporter: '李明',
-        customerName: '王芳',
-        customerPhone: '136****3333',
-        reportTime: '2024-01-12',
-        reportType: '渠道报备'
-    },
-    {
-        id: 5,
-        reporter: '赵雷',
-        customerName: '孙丽',
-        customerPhone: '135****4444',
-        reportTime: '2024-01-11',
-        reportType: '自然来访'
-    }
-])
-
-// 筛选后的列表
-const filteredReportList = ref([...originalReportList.value])
+// 列表数据
+const reportList = ref([])
 
 // 选中的报备信息ID
 const selectedReportId = ref(null)
 const selectedReportData = ref(null)
-
-// 报备方式选择
-const onReportTypeChange = (e) => {
-    const index = e.detail.value
-    searchForm.value.reportType = reportTypeList.value[index]
-    if (searchForm.value.reportType === '全部') {
-        searchForm.value.reportType = ''
-    }
-}
 
 // 报备时间搜索选择
 const onReportTimeSearchChange = (e) => {
@@ -174,46 +123,40 @@ const onReportTimeSearchChange = (e) => {
 // 重置查询
 const resetSearch = () => {
     searchForm.value = {
-        reportType: '',
-        reportTime: '',
-        customerName: ''
+        custTel: '',
+        custName: '',
+        reportTime: ''
     }
     handleSearch()
 }
 
 // 查询
 const handleSearch = () => {
-    let filtered = [...originalReportList.value]
-
-    // 按报备方式筛选
-    if (searchForm.value.reportType) {
-        filtered = filtered.filter(item => item.reportType === searchForm.value.reportType)
-    }
-
-    // 按报备时间筛选
-    if (searchForm.value.reportTime) {
-        filtered = filtered.filter(item => item.reportTime === searchForm.value.reportTime)
-    }
-
-    // 按客户姓名筛选（模糊匹配）
-    if (searchForm.value.customerName) {
-        filtered = filtered.filter(item =>
-            item.customerName.includes(searchForm.value.customerName)
-        )
-    }
-
-    filteredReportList.value = filtered
-
     // 清空选中状态
     selectedReportId.value = null
     selectedReportData.value = null
+    fetchReportList()
+}
 
-    if (filtered.length === 0) {
+const fetchReportList = () => {
+    reportList.value = []
+    const params = {
+        projId: props.projectId,
+        custTel: searchForm.value.custTel,
+        custName: searchForm.value.custName,
+        reportTimeStart: searchForm.value.reportTime ? `${searchForm.value.reportTime} 00:00:00` : '',
+        reportTimeEnd: searchForm.value.reportTime ? `${searchForm.value.reportTime} 23:59:59` : ''
+    }
+    visitorRegisterApi.getReportHis(params).then((res) => {
+        if (res.code === 200) {
+            reportList.value = res.data || []
+        }
+    }).catch((err) => {
         uni.showToast({
-            title: '暂无匹配数据',
+            title: '查询失败，请稍后重试',
             icon: 'none'
         })
-    }
+    })
 }
 
 // 选择报备信息
@@ -231,7 +174,6 @@ const selectReport = (item) => {
 
 // 确认选择
 const confirmSelection = () => {
-    console.log(12346)
     if (!selectedReportData.value) {
         uni.showToast({
             title: '请选择报备信息',
@@ -239,20 +181,10 @@ const confirmSelection = () => {
         })
         return
     }
-
-    // 返回选中的数据
-    console.log('选中的报备信息:', selectedReportData.value)
-
     // 关闭弹窗
     closePopup()
-
     // 触发父组件事件，传递选中的数据
-    uni.$emit('reportSelected', selectedReportData.value)
-
-    uni.showToast({
-        title: '选择成功',
-        icon: 'success'
-    })
+    emit('reportSelected', selectedReportData.value)
 }
 
 // 打开弹窗
@@ -287,7 +219,7 @@ defineExpose({
 
     .popup-top {
         width: 100%;
-        height: 80rpx;
+        height: 70rpx;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -344,8 +276,8 @@ defineExpose({
 
             .search-picker {
                 flex: 1;
-                height: 64rpx;
-                line-height: 64rpx;
+                height: 60rpx;
+                line-height: 60rpx;
                 background-color: #fff;
                 border-radius: 8rpx;
                 padding: 0 20rpx;
@@ -368,7 +300,7 @@ defineExpose({
 
             .search-input {
                 flex: 1;
-                height: 64rpx;
+                height: 60rpx;
                 background-color: #fff;
                 border-radius: 8rpx;
                 padding: 0 20rpx;
@@ -376,8 +308,8 @@ defineExpose({
                 color: #999;
                 border: 1rpx solid #e0e0e0;
 
-                &::placeholder {
-                    color: #ccc;
+                .input-placeholder {
+                    color: #999;
                 }
             }
         }
@@ -389,8 +321,8 @@ defineExpose({
             .reset-btn,
             .search-btn {
                 width: 120rpx;
-                height: 64rpx;
-                line-height: 64rpx;
+                height: 60rpx;
+                line-height: 60rpx;
                 font-size: 26rpx;
                 border-radius: 8rpx;
                 border: none;
@@ -499,11 +431,11 @@ defineExpose({
         flex-shrink: 0;
 
         .submit-btn {
-            width: 100%;
-            height: 88rpx;
+            width: 60%;
+            height: 66rpx;
             background: linear-gradient(135deg, #007AFF, #0056b3);
             color: #fff;
-            font-size: 30rpx;
+            font-size: 28rpx;
             font-weight: 500;
             border-radius: 44rpx;
             border: none;

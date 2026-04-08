@@ -25,7 +25,7 @@ export const formatNumber = (value, decimals = 2, rounding = "round") => {
   if (isNaN(num) || !isFinite(num)) {
     return 0;
   }
-  
+
   const factor = Math.pow(10, decimals);
 
   // 根据舍入模式处理
@@ -45,7 +45,7 @@ export const formatNumber = (value, decimals = 2, rounding = "round") => {
  * @param {number|string} value - 需要格式化的小数比例值（0-1之间的小数，如：0.8534）
  * @param {number} [decimals=2] - 保留的小数位数，默认为2位
  * @returns {number} 返回格式化后的百分比数值（已乘以100）
- * 
+ *
  * @example
  * formatPercentage(0.8534)        // 85.34
  * formatPercentage(0.6234, 1)      // 62.3
@@ -63,12 +63,57 @@ export const formatPercentage = (value, decimals = 2) => {
   if (value === null || value === undefined || value === "") {
     return 0;
   }
-  
+
   const num = Number(value);
   if (isNaN(num) || !isFinite(num)) {
     return 0;
   }
-  
+
   // 乘以100转换为百分比
   return formatNumber(num * 100, decimals);
-}
+};
+
+/**
+ * 将逗号分隔的选项字符串和数值字符串转换为对象数组
+ * @param {string} optionStr - 逗号分隔的选项名称字符串，例如 "短信,网络,微信"
+ * @param {string} valueStr - 逗号分隔的数值字符串，例如 "0,1,2"
+ * @returns {Array<{id: string, name: string}>} 返回包含 id 和 name 的对象数组
+ *
+ * @example
+ * const optionStr = "短信,网络,微信";
+ * const valueStr = "0,1,2";
+ * const result = transformData(optionStr, valueStr);
+ * // 返回: [{ id: "0", name: "短信" }, { id: "1", name: "网络" }, { id: "2", name: "微信" }]
+ *
+ * @note 当两个数组长度不一致时，以较短的长度为准进行配对
+ * @note id 保持字符串类型，不会自动转换为数字
+ */
+export const transformData = (optionStr, valueStr) => {
+  // 参数校验：非字符串或空字符串时返回空数组
+  if (typeof optionStr !== "string" || typeof valueStr !== "string") {
+    return [];
+  }
+  const trimmedOption = optionStr.trim();
+  const trimmedValue = valueStr.trim();
+
+  // 处理空字符串
+  if (trimmedOption === "" || trimmedValue === "") {
+    return [];
+  }
+
+  const names = trimmedOption.split(",");
+  const ids = trimmedValue.split(",");
+  const result = [];
+  // 取两者中较短的长度进行配对，避免索引越界
+  const length = Math.min(names.length, ids.length);
+
+  // 遍历并组装对象数组
+  for (let i = 0; i < length; i++) {
+    result.push({
+      id: ids[i], // 保持原始字符串格式
+      name: names[i].trim(), // 去除名称首尾空格
+    });
+  }
+
+  return result;
+};
