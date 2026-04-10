@@ -241,7 +241,6 @@ page {
     }
 
     .list-wrapper {
-        height: 100%;
         background: white;
         border-radius: 20rpx;
         overflow: hidden;

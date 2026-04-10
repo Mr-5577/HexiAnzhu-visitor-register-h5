@@ -382,14 +382,15 @@ defineExpose({
             flex-shrink: 0;
             position: absolute;
             top: 0;
-            right: 0;
+            right: -10rpx;
         }
 
         .detail-row {
             display: flex;
-            align-items: center;
             margin-bottom: 6rpx;
             font-size: 26rpx;
+            padding-right: 20rpx;
+            box-sizing: border-box;
 
             &:last-child {
                 margin-bottom: 0;

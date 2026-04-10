@@ -13,14 +13,11 @@
         <scroll-view class="form-scroll" scroll-y>
             <view class="form-container">
                 <view class="form-card">
-                    <!-- 项目 -->
+                    <!-- 项目 - 使用 CustomPicker 组件 -->
                     <view class="form-item">
                         <text class="label required">项目</text>
-                        <picker mode="selector" :range="projectList" range-key="name" @change="onSalesOfficeChange">
-                            <view class="picker">
-                                {{ formData.visitProjName || '请选择项目' }}
-                            </view>
-                        </picker>
+                        <CustomPicker v-model="formData.visitProjId" :options="projectList" label-key="name"
+                            value-key="id" placeholder="请选择项目" @change="onProjectChange" />
                     </view>
                     <!-- 客户姓名 -->
                     <view class="form-item">
@@ -51,15 +48,12 @@
                     </view>
                 </view>
                 <view class="form-card">
-                    <!-- 到访方式 -->
+                    <!-- 到访方式 - 使用 CustomPicker 组件 -->
                     <view class="form-item">
                         <text class="label required">到访方式</text>
-                        <picker mode="selector" :range="visitMethodList" range-key="name"
-                            :disabled="visitType === 'natural'" @change="onVisitMethodChange">
-                            <view class="picker">
-                                {{ formData.visitTypeName || '请选择到访方式' }}
-                            </view>
-                        </picker>
+                        <CustomPicker v-model="formData.visitTypeId" :options="visitMethodList"
+                            :disabled="visitType === 'natural'" label-key="name" value-key="id" placeholder="请选择到访方式"
+                            @change="onVisitMethodChange" />
                     </view>
 
                     <!-- 根据到访方式显示不同字段 -->
@@ -84,7 +78,7 @@
                         </view>
 
                         <view class="form-item">
-                            <text class="label required">带访电话</text>
+                            <text class="label required">带访人电话</text>
                             <input class="input" v-model="formData.bringTel" type="tel" maxlength="11"
                                 placeholder="请输入带访电话" />
                         </view>
@@ -104,24 +98,11 @@
                         </view>
                     </template>
 
-                    <!-- 知晓途径 -->
-                    <!-- <view class="form-item flex-column">
-                            <text class="label required">知晓途径</text>
-                            <view class="radio-group">
-                                <label v-for="item in channelList" :key="item.id" class="radio-item"
-                                    :class="{ active: formData.knowWayId === item.id }"
-                                    @click="formData.knowWayId = item.id">
-                                    <text>{{ item.name }}</text>
-                                </label>
-                            </view>
-                        </view> -->
+                    <!-- 知晓途径 - 使用 CustomPicker 组件 -->
                     <view class="form-item">
                         <text class="label required">知晓途径</text>
-                        <picker mode="selector" :range="channelList" range-key="name" @change="onKnowWayChange">
-                            <view class="picker">
-                                {{ formData.knowWayName || '请选择知晓途径' }}
-                            </view>
-                        </picker>
+                        <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="name"
+                            value-key="id" placeholder="请选择知晓途径" @change="onKnowWayChange" />
                     </view>
 
                 </view>
@@ -143,6 +124,7 @@ import dayjs from 'dayjs'
 import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
 import ReportPopup from './components/report-pop-up.vue'
+import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
 
@@ -167,6 +149,7 @@ const formData = ref({
     visitProjId: '', // 项目ID
     visitProjName: '' // 项目
 })
+
 // 来访方式列表
 const visitMethodList = ref([])
 // 来访途径列表
@@ -175,6 +158,7 @@ const channelList = ref([])
 const projectList = ref([])
 // 提交锁
 const isSubmitting = ref(false)
+
 // 表单验证
 const isFormValid = computed(() => {
     // 客户电话验证
@@ -186,9 +170,9 @@ const isFormValid = computed(() => {
         isPhoneValid &&
         isPhone2Valid &&
         formData.value.visitNum > 0 &&
-        formData.value.visitTypeName &&
-        formData.value.visitProjName &&
-        formData.value.knowWayName
+        formData.value.visitTypeId &&
+        formData.value.visitProjId &&
+        formData.value.knowWayId
 
     if (visitType.value === 'channel' && (formData.value.visitTypeId == 2 || formData.value.visitTypeId == 3)) {
         const isBringPhoneValid = /^1[3-9]\d{9}$/.test(formData.value.bringTel)
@@ -198,6 +182,7 @@ const isFormValid = computed(() => {
     }
     return baseValid
 })
+
 // 初始化表单数据
 const resetForm = () => {
     formData.value = {
@@ -214,10 +199,12 @@ const resetForm = () => {
         reporter: '',      // 报备人
         reportTime: '',    // 报备时间
         knowWayId: '', // 知晓途径
+        knowWayName: '', // 知晓途径name
         visitProjId: '', // 项目ID
         visitProjName: '' // 项目
     }
 }
+
 // 增加人数
 const increasePeople = () => {
     if (formData.value.visitNum < 20) {
@@ -230,6 +217,7 @@ const decreasePeople = () => {
         formData.value.visitNum--
     }
 }
+
 // 切换Tab
 const switchTab = (type) => {
     visitType.value = type
@@ -248,11 +236,15 @@ const switchTab = (type) => {
         }
     }
 }
-// 到访方式选择
-const onVisitMethodChange = (e) => {
-    const index = e.detail.value
-    formData.value.visitTypeId = visitMethodList.value[index].id
-    formData.value.visitTypeName = visitMethodList.value[index].name
+
+// 项目选择变化
+const onProjectChange = (value, selectedItem) => {
+    formData.value.visitProjName = selectedItem.name
+}
+
+// 到访方式选择变化
+const onVisitMethodChange = (value, selectedItem) => {
+    formData.value.visitTypeName = selectedItem.name
 
     // 清除报备人相关信息
     formData.value.reportId = ''
@@ -260,26 +252,20 @@ const onVisitMethodChange = (e) => {
     formData.value.reporter = ''
     formData.value.reportTime = ''
 }
+
 // 报备时间选择
 const onReportTimeChange = (e) => {
     formData.value.reportTime = e.detail.value
 }
-// 知晓途径选择
-const onKnowWayChange = (e) => {
-    const index = e.detail.value
-    formData.value.knowWayId = channelList.value[index].id
-    formData.value.knowWayName = channelList.value[index].name
-}
 
-// 项目选择
-const onSalesOfficeChange = (e) => {
-    const index = e.detail.value
-    formData.value.visitProjId = projectList.value[index].id
-    formData.value.visitProjName = projectList.value[index].name
+// 知晓途径选择变化
+const onKnowWayChange = (value, selectedItem) => {
+    formData.value.knowWayName = selectedItem.name
 }
 
 // 提交表单
 const handleSubmit = async () => {
+    console.log('提交表单数据:', formData.value)
     if (isSubmitting.value) {
         return
     }
@@ -292,7 +278,6 @@ const handleSubmit = async () => {
     }
 
     isSubmitting.value = true
-    console.log('提交表单数据:', formData.value)
 
     // 提交数据
     const submitData = {
@@ -345,8 +330,10 @@ const handleSubmit = async () => {
         isSubmitting.value = false
     }
 }
+
 // 报备弹窗ref
 const reportPopupRef = ref(null)
+
 // 打开报备选择弹窗
 const openReportPopup = () => {
     if (formData.value.visitProjId) {
@@ -358,6 +345,7 @@ const openReportPopup = () => {
         })
     }
 }
+
 // 处理报备选择
 const onReportSelected = (reportData) => {
     console.log('选中的报备数据:', reportData)
@@ -376,6 +364,7 @@ const onReportSelected = (reportData) => {
         formData.value.custTel2 = reportData.custTel2
     }
 }
+
 // 知晓途径数据
 const fetchGetKnowWay = async () => {
     try {
@@ -399,6 +388,7 @@ const fetchGetKnowWay = async () => {
         })
     }
 }
+
 // 到访方式数据
 const fetchGetVisitType = async () => {
     try {
@@ -422,6 +412,7 @@ const fetchGetVisitType = async () => {
         })
     }
 }
+
 // 项目数据
 const fetchGetProjList = async () => {
     try {
@@ -455,6 +446,7 @@ const fetchGetProjList = async () => {
         })
     }
 }
+
 const initFetchData = async () => {
     await Promise.all([fetchGetKnowWay(), fetchGetVisitType(), fetchGetProjList()])
 }
@@ -462,11 +454,13 @@ const initFetchData = async () => {
 onShow(() => {
     initFetchData()
 })
+
 onHide(() => {
     visitType.value = 'channel'
     resetForm()
     reportPopupRef.value?.closePopup()
 })
+
 onMounted(() => {
     // initFetchData()
 })
@@ -574,6 +568,7 @@ page {
     padding-left: 6rpx;
     box-sizing: border-box;
     position: relative;
+    flex-shrink: 0;
 }
 
 .label.required::before {
@@ -708,7 +703,6 @@ page {
     font-size: 32rpx;
     color: #fff;
 }
-
 
 // 底部按钮
 .bottom-btn {

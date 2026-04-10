@@ -4,14 +4,8 @@
         <view class="search-bar">
             <view class="query-info-content">
                 <view class="title">项目</view>
-                <picker mode="selector" :range="projectList" style="width: 100%;" range-key="name"
-                    @change="handleProjectChange">
-                    <view class="pro-picker">
-                        {{ searchForm.visitProjName || '请选择项目' }}
-                        <!-- <uni-icons type="closeempty" size="14" color="#999" v-show="searchForm.visitProjName"
-                            @click.stop="handleProjectClear"></uni-icons> -->
-                    </view>
-                </picker>
+                <CustomPicker v-model="searchForm.visitProjId" :options="projectList" label-key="name" value-key="id"
+                    placeholder="请选择项目" :spaceBetween="true" @change="handleProjectChange" />
             </view>
             <view class="filter-icon" @click="openSearchPopup">
                 <text class="search-text">更多筛选</text>
@@ -116,13 +110,8 @@
                 <view class="form-container">
                     <view class="form-item">
                         <view class="item-label">项目</view>
-                        <picker mode="selector" :range="projectList" range-key="name" @change="onProjectChange">
-                            <view class="picker">
-                                {{ tempSearchForm.visitProjName || '请选择项目' }}
-                                <!-- <uni-icons type="closeempty" size="14" color="#999"
-                                    v-show="tempSearchForm.visitProjName" @click.stop="clearTempProject"></uni-icons> -->
-                            </view>
-                        </picker>
+                        <CustomPicker v-model="tempSearchForm.visitProjId" :options="projectList" label-key="name"
+                            value-key="id" placeholder="请选择项目" :spaceBetween="true" @change="onProjectChange" />
                     </view>
                     <view class="form-item">
                         <view class="item-label">来访日期</view>
@@ -158,6 +147,7 @@ import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
+import CustomPicker from '@/components/custom-picker/index.vue'
 
 // 查询表单
 const searchForm = ref({
@@ -200,20 +190,11 @@ const isAllSelected = computed(() => {
 })
 
 // 项目切换
-const handleProjectChange = async (e) => {
-    const index = e.detail.value
-    searchForm.value.visitProjId = projectList.value[index].id
-    searchForm.value.visitProjName = projectList.value[index].name
+const handleProjectChange = async (value, selectedItem) => {
+    searchForm.value.visitProjId = value
+    searchForm.value.visitProjName = selectedItem.name
     selectedIds.value = []
     await fetchGetSalerList() // 重新获取置业顾问列表
-    getRecordList()
-}
-
-// 清空项目选择
-const handleProjectClear = () => {
-    searchForm.value.visitProjId = ''
-    searchForm.value.visitProjName = ''
-    selectedIds.value = []
     getRecordList()
 }
 
@@ -230,16 +211,9 @@ const openSearchPopup = () => {
 }
 
 // 弹窗内项目选择
-const onProjectChange = (e) => {
-    const index = e.detail.value
-    tempSearchForm.value.visitProjId = projectList.value[index].id
-    tempSearchForm.value.visitProjName = projectList.value[index].name
-}
-
-// 清空弹窗内项目选择
-const clearTempProject = () => {
-    tempSearchForm.value.visitProjId = ''
-    tempSearchForm.value.visitProjName = ''
+const onProjectChange = (value, selectedItem) => {
+    tempSearchForm.value.visitProjId = value
+    tempSearchForm.value.visitProjName = selectedItem.name
 }
 
 // 弹窗内日期选择
@@ -336,7 +310,7 @@ const confirmAllocate = async () => {
         }
     } catch (error) {
         uni.hideLoading()
-     } finally {
+    } finally {
         isSubmitting.value = false
     }
 }
@@ -482,19 +456,19 @@ const resetData = () => {
 
 // 页面显示时加载数据
 onShow(async () => {
-    await fetchGetProjList()
-    await fetchGetVisitType()
-    await fetchGetSalerList()
-    await getRecordList()
-})
-onHide(() => {
-    resetData()
-})
-onMounted(async () => {
     // await fetchGetProjList()
     // await fetchGetVisitType()
     // await fetchGetSalerList()
     // await getRecordList()
+})
+onHide(() => {
+    // resetData()
+})
+onMounted(async () => {
+    await fetchGetProjList()
+    await fetchGetVisitType()
+    await fetchGetSalerList()
+    await getRecordList()
 })
 </script>
 
@@ -528,30 +502,15 @@ page {
         flex: 1;
         display: flex;
         align-items: center;
-        gap: 30rpx;
+        gap: 20rpx;
         min-width: 0;
 
         .title {
             font-size: 28rpx;
             color: #666;
-            width: 120rpx;
+            width: 100rpx;
             text-align: right;
-        }
-
-        .pro-picker {
-            width: 100%;
-            font-size: 28rpx;
-            color: #999;
-            padding: 8rpx 16rpx;
-            box-sizing: border-box;
-            height: 60rpx;
-            display: flex;
-            align-items: center;
-            border: 1rpx solid #e0e0e0;
-            border-radius: 12rpx;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-shrink: 0;
         }
     }
 
