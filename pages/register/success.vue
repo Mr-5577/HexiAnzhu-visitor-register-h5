@@ -376,7 +376,6 @@ page {
 
             .detail-label {
                 color: #666;
-                width: 160rpx;
                 flex-shrink: 0;
                 text-align: right;
             }

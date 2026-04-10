@@ -240,6 +240,12 @@ const switchTab = (type) => {
 // 项目选择变化
 const onProjectChange = (value, selectedItem) => {
     formData.value.visitProjName = selectedItem.name
+
+    // 清除报备人相关信息
+    formData.value.reportId = ''
+    formData.value.reportCom = ''
+    formData.value.reporter = ''
+    formData.value.reportTime = ''
 }
 
 // 到访方式选择变化
@@ -353,7 +359,7 @@ const onReportSelected = (reportData) => {
         return
     }
     // 回填报备信息到表单
-    formData.value.reportId = reportData.reportManId
+    formData.value.reportId = reportData.id
     formData.value.reportCom = reportData.reportCom
     formData.value.reporter = reportData.reportMan
     formData.value.reportTime = reportData.reportTime
