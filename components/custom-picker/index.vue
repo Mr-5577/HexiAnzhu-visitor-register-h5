@@ -8,20 +8,20 @@
             <view class="picker-arrow">›</view>
         </view>
 
-        <!-- 自定义弹窗，使用超高 z-index -->
+        <!-- 弹窗：使用 scroll-view 代替 picker-view -->
         <view v-if="showPicker" class="custom-picker-mask" @click="closePicker">
             <view class="custom-picker-container-bottom" @click.stop>
                 <view class="picker-header">
                     <text class="picker-cancel" @click="closePicker">取消</text>
                     <text class="picker-confirm" @click="confirmPicker">确定</text>
                 </view>
-                <picker-view class="picker-view" :value="tempIndex" @change="onPickerChange">
-                    <picker-view-column>
-                        <view class="picker-item" v-for="(item, idx) in options" :key="idx">
-                            {{ item[labelKey] }}
-                        </view>
-                    </picker-view-column>
-                </picker-view>
+                <scroll-view class="picker-scroll" scroll-y>
+                    <view v-for="(item, idx) in options" :key="idx" class="picker-option"
+                        :class="{ 'picker-option-active': tempSelectedIndex === idx }" @click="selectOption(idx)">
+                        <text class="option-text">{{ item[labelKey] }}</text>
+                        <text v-if="tempSelectedIndex === idx" class="option-check">✓</text>
+                    </view>
+                </scroll-view>
             </view>
         </view>
     </view>
@@ -31,37 +31,19 @@
 import { ref, computed } from 'vue'
 
 const props = defineProps({
-    options: {
-        type: Array,
-        default: () => []
-    },
+    options: { type: Array, default: () => [] },
     modelValue: [String, Number],
-    labelKey: {
-        type: String,
-        default: 'name'
-    },
-    valueKey: {
-        type: String,
-        default: 'id'
-    },
-    placeholder: {
-        type: String,
-        default: '请选择'
-    },
-    disabled: {
-        type: Boolean,
-        default: false
-    },
-    spaceBetween: {
-        type: Boolean,
-        default: false
-    }
+    labelKey: { type: String, default: 'name' },
+    valueKey: { type: String, default: 'id' },
+    placeholder: { type: String, default: '请选择' },
+    disabled: { type: Boolean, default: false },
+    spaceBetween: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
 
 const showPicker = ref(false)
-const tempIndex = ref([0])
+const tempSelectedIndex = ref(0)
 
 const displayValue = computed(() => {
     if (!props.modelValue) return ''
@@ -72,16 +54,16 @@ const displayValue = computed(() => {
 const openPicker = () => {
     if (props.disabled) return
     const currentIndex = props.options.findIndex(item => item[props.valueKey] == props.modelValue)
-    tempIndex.value = [currentIndex !== -1 ? currentIndex : 0]
+    tempSelectedIndex.value = currentIndex !== -1 ? currentIndex : 0
     showPicker.value = true
 }
 
-const onPickerChange = (e) => {
-    tempIndex.value = [e.detail.value[0]]
+const selectOption = (idx) => {
+    tempSelectedIndex.value = idx
 }
 
 const confirmPicker = () => {
-    const selected = props.options[tempIndex.value[0]]
+    const selected = props.options[tempSelectedIndex.value]
     if (selected) {
         const newValue = selected[props.valueKey]
         emit('update:modelValue', newValue)
@@ -145,7 +127,6 @@ defineExpose({ openPicker })
     line-height: 1;
 }
 
-/* 弹窗样式 - 使用固定定位 + 超高 z-index */
 .custom-picker-mask {
     position: fixed;
     top: 0;
@@ -165,6 +146,7 @@ defineExpose({ openPicker })
     border-top-left-radius: 20rpx;
     border-top-right-radius: 20rpx;
     z-index: 100000;
+    height: 620rpx;
 }
 
 .picker-header {
@@ -185,32 +167,42 @@ defineExpose({ openPicker })
     font-weight: 500;
 }
 
-.picker-view {
-    width: 100%;
-    height: 500rpx;
+.picker-scroll {
+    max-height: 600rpx;
+    overflow-y: auto;
 }
 
-.picker-item {
-    height: 70rpx;
-    line-height: 70rpx;
-    text-align: center;
+.picker-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24rpx 30rpx;
+    border-bottom: 1rpx solid #f5f5f5;
+}
+
+.picker-option-active {
+    background-color: #f0f7ff;
+}
+
+.option-text {
     font-size: 28rpx;
     color: #333;
 }
-</style>
 
-<!-- 额外添加全局样式，确保覆盖 tabbar -->
-<style>
-/* 确保弹窗在 tabbar 之上 */
-.custom-picker-mask,
-.custom-picker-container-bottom {
-    z-index: 99999 !important;
+.picker-option-active .option-text {
+    color: #007AFF;
+    font-weight: 500;
 }
 
-/* 临时降低 tabbar 的层级（可选，如果上述方法不生效） */
-.uni-tabbar-bottom,
-.uni-tabbar,
-.tabbar {
-    z-index: 9998 !important;
+.option-check {
+    width: 40rpx;
+    height: 40rpx;
+    border-radius: 50%;
+    background-color: #007AFF;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24rpx;
 }
 </style>
