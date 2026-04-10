@@ -2,7 +2,7 @@
     <view class="qrcode-container">
         <!-- 顶部项目下拉选择框 -->
         <view class="selector-wrapper">
-            <view class="selector-label">选择项目</view>
+            <view class="selector-label">项目</view>
             <picker mode="selector" :range="projectList" :range-key="'name'" @change="onProjectChange"
                 :value="selectedIndex" class="picker-custom">
                 <view class="picker-content">
@@ -31,9 +31,9 @@
 
 <script setup>
 import QRCode from 'qrcode';
-import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref, computed, onUnmounted, onMounted } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
+import config from '@/utils/config.js'
 
 // 项目列表
 const projectList = ref([])
@@ -44,7 +44,7 @@ const currentProject = computed(() => projectList.value[selectedIndex.value])
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
-        const res = await visitorRegisterApi.getProjList()
+        const res = await visitorRegisterApi.getProjList({ isAll: true })
         if (res.code === 200) {
             const data = res.data || []
             const newData = data.map((item) => {
@@ -58,7 +58,7 @@ const fetchGetProjList = async () => {
             // 默认选中第一个项目并生成二维码
             if (newData.length > 0) {
                 selectedIndex.value = 0
-                refreshQRCode()
+                await refreshQRCode()
             }
         }
     } catch (error) {
@@ -68,10 +68,44 @@ const fetchGetProjList = async () => {
 // 二维码URL
 const qrcodeUrl = ref('')
 const qrMessage = ref('二维码生成中...')
+let autoRefreshTimer = null
+
+// 获取当前时间距离下一个半小时的延迟时间
+const getNextHalfHourDelay = () => {
+    const now = new Date()
+    const minutes = now.getMinutes()
+    const nextBoundary = new Date(now)
+    if (minutes < 30) {
+        // minutes < 30 → 刷新到本小时的 xx:30
+        nextBoundary.setMinutes(30, 0, 0)
+    } else {
+        // minutes >= 30 → 统一设置到下一小时的00分
+        nextBoundary.setHours(now.getHours() + 1, 0, 0, 0)
+    }
+    return nextBoundary.getTime() - now.getTime()
+}
+// 清除自动刷新定时器
+const clearAutoRefresh = () => {
+    if (autoRefreshTimer) {
+        clearTimeout(autoRefreshTimer)
+        autoRefreshTimer = null
+    }
+}
+// 自动刷新二维码
+const scheduleAutoRefresh = () => {
+    clearAutoRefresh()
+    const delay = Math.max(0, getNextHalfHourDelay())
+    autoRefreshTimer = setTimeout(async () => {
+        await refreshQRCode()
+    }, delay)
+}
+
 // 自动登录页面路径
 // const originUrl = 'http://sysa.hexianzhu.com/pages/login/autoLogin'
+const originUrl = `${config.baseUrlActual}/pages/login/autoLogin`
 // 签到页面路径
-const originUrl = 'http://sysa.hexianzhu.com/pages/check-in/sginIn'
+// const originUrl = 'http://sysa.hexianzhu.com/pages/check-in/sginIn'
+// const originUrl = 'http://192.168.1.24:8099/pages/check-in/sginIn'
 // 生成二维码 
 const generateQRCode = async (project) => {
     if (!project?.projId || !project?.projName) {
@@ -81,11 +115,11 @@ const generateQRCode = async (project) => {
     qrMessage.value = '二维码生成中...'
     qrcodeUrl.value = '' // 清空旧二维码
     try {
-        const { projId, projName } = project
+        const { projId } = project
+        // 增加时间戳，二维码只保留半个小时，自动登录页面需要处理是否过期问题
         const timestamp = Date.now()
         const params = new URLSearchParams({
-            projectId: projId,
-            projectName: projName,
+            toPath: `/pages/check-in/sginIn?projId=${projId}`, // 将要跳转的页面路径，此处为 签到页面路径
             t: timestamp
         })
         const qrContent = `${originUrl}?${params.toString()}`
@@ -112,20 +146,26 @@ const onProjectChange = async (e) => {
 const refreshQRCode = async () => {
     if (!currentProject.value) {
         qrcodeUrl.value = ''
+        qrMessage.value = '请选择项目！'
+        clearAutoRefresh()
         return
     }
-    uni.showLoading({ title: '二维码生成中...' })
-    // 生成二维码
-    await generateQRCode(currentProject.value)
-    uni.hideLoading()
+    try {
+        uni.showLoading({ title: '二维码生成中...' })
+        await generateQRCode(currentProject.value)
+    } catch (error) {
+        qrMessage.value = '二维码生成失败'
+    } finally {
+        uni.hideLoading()
+        scheduleAutoRefresh()
+    }
 }
 
-onShow(async () => {
+onMounted(async () => {
     await fetchGetProjList()
 })
-onHide(() => {
-})
 onUnmounted(() => {
+    clearAutoRefresh()
 })
 </script>
 

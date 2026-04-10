@@ -2,7 +2,7 @@
     <view class="container">
         <!-- 顶部项目下拉选择框 -->
         <view class="selector-wrapper">
-            <view class="selector-label">选择项目</view>
+            <view class="selector-label">项目</view>
             <picker mode="selector" :range="projectList" :range-key="'name'" @change="onProjectChange"
                 :value="selectedIndex" class="picker-custom">
                 <view class="picker-content">
@@ -63,7 +63,7 @@ const currentProject = computed(() => projectList.value[selectedIndex.value])
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
-        const res = await visitorRegisterApi.getProjList()
+        const res = await visitorRegisterApi.getProjList({ isAll: false })
         if (res.code === 200) {
             const data = res.data || []
             const newData = data.map((item) => {
@@ -137,6 +137,7 @@ onMounted(async () => {
     await fetchGetSalerList()
 })
 onUnmounted(() => {
+    selectedIndex.value = 0
 })
 </script>
 
@@ -240,6 +241,7 @@ page {
     }
 
     .list-wrapper {
+        height: 100%;
         background: white;
         border-radius: 20rpx;
         overflow: hidden;

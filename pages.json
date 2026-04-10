@@ -22,7 +22,8 @@
     {
       "path": "pages/check-in/sginIn",
       "style": {
-        "navigationBarTitleText": "签到"
+        "navigationBarTitleText": "签到",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -48,6 +49,12 @@
       "path": "pages/check-in/sort",
       "style": {
         "navigationBarTitleText": "排序"
+      }
+    },
+    {
+      "path": "pages/check-in/qr-code",
+      "style": {
+        "navigationBarTitleText": "扫码签到"
       }
     },
     {

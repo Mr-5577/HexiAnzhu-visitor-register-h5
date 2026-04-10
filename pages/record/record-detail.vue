@@ -10,6 +10,10 @@
             <view class="info-section">
                 <view class="section-title">基本信息</view>
                 <view class="info-row">
+                    <text class="label">到访方式：</text>
+                    <text class="value">{{ detailData.visitTypeName || '-' }}</text>
+                </view>
+                <view class="info-row">
                     <text class="label">来访时间：</text>
                     <text class="value">{{ detailData.visitTime || '-' }}</text>
                 </view>
@@ -29,14 +33,16 @@
                     <text class="label">客户电话2：</text>
                     <text class="value">{{ detailData.custTel2 || '-' }}</text>
                 </view>
-                <view class="info-row">
-                    <text class="label">带访人：</text>
-                    <text class="value">{{ detailData.bringMan || '-' }}</text>
-                </view>
-                <view class="info-row">
-                    <text class="label">带访人电话：</text>
-                    <text class="value">{{ detailData.bringTel || '-' }}</text>
-                </view>
+                <template v-if="detailData.visitTypeId == 2 || detailData.visitTypeId == 3">
+                    <view class="info-row">
+                        <text class="label">带访人：</text>
+                        <text class="value">{{ detailData.bringMan || '-' }}</text>
+                    </view>
+                    <view class="info-row">
+                        <text class="label">带访人电话：</text>
+                        <text class="value">{{ detailData.bringTel || '-' }}</text>
+                    </view>
+                </template>
             </view>
             <!-- 甲方信息 -->
             <view class="info-section">
@@ -56,8 +62,8 @@
             </view>
             <!-- 底部按钮 -->
             <view class="button-group">
-                <!-- <button class="back-btn" @click="goBack">返回</button> -->
-                <button class="print-btn" @click="handlePrint">打印确认单</button>
+                <button class="back-btn" @click="goBack">返 回</button>
+                <!-- <button class="print-btn" @click="handlePrint">打印确认单</button> -->
             </view>
         </view>
     </view>
@@ -66,27 +72,11 @@
 <script setup>
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
+import { transformData } from '@/utils/common.js'
 import { visitorRegisterApi } from '@/common/api.js'
 
 // 详情数据
 const detailData = ref({})
-
-// 获取详情数据
-const getDetailData = () => {
-    // 从路由参数获取ID
-    const pages = getCurrentPages()
-    const currentPage = pages[pages.length - 1]
-    const options = currentPage.$page?.options || {}
-    const id = options.id
-    console.log('options', options)
-    if (!id) {
-        uni.showToast({
-            title: '参数错误',
-            icon: 'none'
-        })
-        return
-    }
-}
 
 // 返回上一页
 const goBack = () => {
@@ -95,25 +85,15 @@ const goBack = () => {
 
 // 打印确认单
 const handlePrint = () => {
-    // 打印功能实现
-    uni.showModal({
-        title: '提示',
-        content: '确认打印到访确认单？',
-        success: (res) => {
-            if (res.confirm) {
-                // 调用打印接口或生成PDF
-                uni.showToast({
-                    title: '打印功能开发中',
-                    icon: 'none'
-                })
-            }
-        }
+    uni.showToast({
+        title: '打印功能开发中',
+        icon: 'none'
     })
 }
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
-        const res = await visitorRegisterApi.getProjList()
+        const res = await visitorRegisterApi.getProjList({ isAll: false })
         if (res.code === 200) {
             const data = res.data || []
             const targetData = data.find(item => item.projId === detailData.value.visitProjId)
@@ -124,6 +104,23 @@ const fetchGetProjList = async () => {
         }
     } catch (error) {
         projectList.value = []
+    }
+}
+// 到访方式数据
+const fetchGetVisitType = async () => {
+    try {
+        const res = await visitorRegisterApi.getVisitType()
+        if (res.code === 200) {
+            const data = res.data || []
+            const [firstData, ...restData] = data
+            const { optionStr, valueStr } = firstData || {}
+            const visitMethodList = transformData(optionStr, valueStr)
+            const targetData = visitMethodList.find(item => item.id == detailData.value.visitTypeId)
+            if (targetData) {
+                detailData.value.visitTypeName = targetData.name
+            }
+        }
+    } catch (error) {
     }
 }
 const getDetailById = async (id) => {
@@ -141,6 +138,7 @@ onLoad(async (options) => {
     if (options.id) {
         await getDetailById(options.id)
         await fetchGetProjList()
+        await fetchGetVisitType()
     }
 })
 onMounted(() => { })

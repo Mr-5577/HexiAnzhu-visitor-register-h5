@@ -13,6 +13,10 @@ export const userApi = {
 };
 // 来访登记接口
 export const visitorRegisterApi = {
+  // 获取用户信息
+  getSalerInfo: (data) => {
+    return post("/visit/getSalerInfo", data);
+  },
   // 获取知晓途径
   getKnowWay: () => {
     return post("/visit/getKnowWay");
@@ -21,9 +25,9 @@ export const visitorRegisterApi = {
   getVisitType: () => {
     return post("/visit/getVisitType");
   },
-  // 获取项目列表
-  getProjList: () => {
-    return post("/visit/getProjList");
+  // 获取项目列表,isAll为true时获取所有项目，false时获取当前用户所属项目
+  getProjList: (data) => {
+    return post("/visit/getProjList", data);
   },
   // 获取报备列表
   getReportHis: (data) => {

@@ -2,6 +2,9 @@
     <view class="check-in-container">
         <!-- 顶部切换Tab -->
         <view class="type-tab">
+            <view class="tab-item" :class="{ active: checkInType === 'sort' }" @click="checkInType = 'sort'">
+                AB位排序
+            </view>
             <view class="tab-item" :class="{ active: checkInType === 'qr-code' }" @click="checkInType = 'qr-code'">
                 签到二维码
             </view>
@@ -9,7 +12,9 @@
                 签到列表
             </view>
         </view>
-        <!-- 二维码 -->
+        <!-- AB位排序 -->
+        <sort v-if="checkInType === 'sort'"></sort>
+        <!-- 签到二维码 -->
         <qr-code v-if="checkInType === 'qr-code'"></qr-code>
         <!-- 签到列表 -->
         <list v-if="checkInType === 'list'"></list>
@@ -19,12 +24,13 @@
 <script setup>
 import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref } from 'vue'
-import List from './list.vue'
+import Sort from './sort.vue';
 import QrCode from './qr-code.vue';
+import List from './list.vue'
 
-const checkInType = ref('qr-code')
+const checkInType = ref('sort')
 onShow(() => {
-    checkInType.value = 'qr-code'
+    checkInType.value = 'sort'
 })
 onHide(() => {
     checkInType.value = ''

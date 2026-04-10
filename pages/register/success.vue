@@ -29,7 +29,8 @@
                     <text class="detail-value">{{ detailData.visitTypeName || '-' }}</text>
                 </view>
                 <!-- 渠道来访展示一下信息 channel：渠道来访   natural：自然来访 -->
-                <template v-if="detailData.visitType == 'channel'">
+                <template
+                    v-if="detailData.visitType == 'channel' && (detailData.visitTypeId == 2 || detailData.visitTypeId == 3)">
                     <view class="detail-row">
                         <text class="detail-label">带访人：</text>
                         <text class="detail-value">{{ detailData.bringMan || '-' }}</text>
@@ -112,7 +113,8 @@
             </scroll-view>
 
             <view class="popup-bottom">
-                <button class="confirm-btn" :disabled="!selectedConsultantData" @click="confirmReassign">
+                <button class="confirm-btn" :disabled="!selectedConsultantData || isSubmitting"
+                    @click="confirmReassign">
                     确认分配
                 </button>
             </view>
@@ -129,6 +131,9 @@ import { onLoad } from '@dcloudio/uni-app'
 defineOptions({
     inheritAttrs: false
 })
+
+// 提交锁
+const isSubmitting = ref(false)
 const detailData = ref({
     id: '',
     visitType: '',
@@ -154,7 +159,6 @@ const detailData = ref({
 
 // 弹窗引用
 const reassignPopupRef = ref(null)
-
 // 置业顾问列表
 const consultantList = ref([])
 // 搜索关键词
@@ -206,6 +210,9 @@ const closeReassignPopup = () => {
 
 // 确认分配
 const confirmReassign = async () => {
+    if (isSubmitting.value) {
+        return
+    }
     if (!selectedConsultantData.value) {
         uni.showToast({
             title: '请选择置业顾问',
@@ -213,12 +220,15 @@ const confirmReassign = async () => {
         })
         return
     }
+    isSubmitting.value = true
+    uni.showLoading({ title: '分配中...' })
     try {
         const params = {
             visitRecIds: [detailData.value.id], // 来访登记成功的记录数据ID
             salerId: selectedConsultantId.value // 置业顾问ID
         }
         const res = await visitorRegisterApi.batchResetSaler(params)
+        uni.hideLoading()
         if (res.code === 200) {
             // await new Promise(resolve => setTimeout(resolve, 500))
             // 更新分配的顾问信息
@@ -232,8 +242,17 @@ const confirmReassign = async () => {
                 title: `${res.message || '分配成功'}`,
                 icon: 'none'
             })
+        } else {
+            uni.showToast({
+                title: `${res.message || '分配失败'}`,
+                icon: 'none'
+            })
         }
-    } catch (error) { }
+    } catch (error) {
+        uni.hideLoading()
+    } finally {
+        isSubmitting.value = false
+    }
 }
 
 // 继续登记,跳转到登记页面
@@ -289,7 +308,7 @@ onLoad(async (options) => {
         // 根据选择的项目ID，获取置业顾问列表
         await fetchGetSalerList()
     }
-    // 得到置业顾问ID
+    // 通过来访记录ID获取信息
     if (options.id) {
         detailData.value.id = options.id
         getRecDetailById(options.id)

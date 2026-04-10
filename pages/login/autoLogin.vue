@@ -90,24 +90,25 @@ const getQueryParams = () => {
     return {
         token: urlParams.get('token') || '',
         error: urlParams.get('error') || '',
+        timestamp: urlParams.get('t') || '', // 时间戳
+        toPath: urlParams.get('toPath') || '', // 将要跳转的页面路径
         data: atobObj && atobObj.data ? atobObj.data : '',
         home: atobObj && atobObj.home ? atobObj.home : '',
     }
 }
 
 // 首次访问，重定向到认证页面，参数url路径的home，作为认证成功后跳转去的页面路径
-const redirectToAuth = async () => {
+const redirectToAuth = async (path) => {
 
     showMessage('正在获取认证信息...')
     try {
         // 获取认证地址
         const params = {
             data: DATA_VAL,
-            home: '/pages/register/index', // 认证成功后跳转去的页面路径
+            home: path || '/pages/register/index', // 认证成功后跳转去的页面路径
             autoLoginPage: CALLBACK_URL,
             isQrCode: false, // 是否扫码
         }
-        debugger
         const res = await userApi.getAuthRedirectUrl(params) // 正式接口
         // const res = await userApi.getAuthRedirectUrlTest(params) // 测试接口
         if (res.code === 200 && res.data) {
@@ -148,9 +149,10 @@ const handleTokenLogin = async (token, dataParam) => {
         showMessage('登录成功，正在跳转...')
         await new Promise(resolve => setTimeout(resolve, 800))
 
-        // H5 跳转到来访登记页面
+        const { home } = getQueryParams()
+        // H5 跳转到目标页面
         uni.redirectTo({
-            url: '/pages/register/index'
+            url: home || '/pages/register/index'
         })
     } else {
         showMessage('登录验证失败，请重新登录')
@@ -169,12 +171,24 @@ const handleRouteParams = async () => {
         errorMessage.value = ''
 
         // 获取 URL 参数
-        const { token, error, data } = getQueryParams()
+        const { token, error, timestamp, toPath, data } = getQueryParams()
 
         // 保存调试信息
         tokenInfo.value = token
         dataInfo.value = data
         errorInfo.value = error
+
+        // 情况0：有时间戳并且时间戳大于30分钟，二维码过期
+        // if (timestamp) {
+        //     const now = Date.now()
+        //     const numberTimestamp = Number(timestamp)
+        //     const diff = now - numberTimestamp
+        //     if (diff > 1000 * 60 * 30) { // 30分钟
+        //         errorMessage.value = `二维码已过期，请扫描最新二维码`
+        //         showMessage(`二维码已过期，请扫描最新二维码`)
+        //         return
+        //     }
+        // }
 
         // 情况1：有错误参数
         if (error) {
@@ -190,7 +204,7 @@ const handleRouteParams = async () => {
         }
         // 情况3：首次访问，没有token也没有state
         console.log('没有token，开始重定向到认证页面')
-        await redirectToAuth()
+        await redirectToAuth(toPath)
 
     } catch (err) {
         console.error('登录处理失败:', err)
@@ -202,98 +216,12 @@ const handleRouteParams = async () => {
     }
 }
 
-// 判断当前终端类型 PC、平板、手机
-const detectDeviceType = () => {
-    const ua = navigator.userAgent;
-    const screenWidth = window.screen.width;
-    const screenHeight = window.screen.height;
-    const touchPoints = navigator.maxTouchPoints || 0;
-    const hasTouch = touchPoints > 0 || "ontouchstart" in window;
-
-    // 计算设备像素比和估算物理尺寸
-    const pixelRatio = window.devicePixelRatio || 1;
-    const physicalDiagonal = Math.sqrt(
-        Math.pow(screenWidth / pixelRatio, 2) +
-        Math.pow(screenHeight / pixelRatio, 2)
-    ) / 160; // 160ppi 为标准，估算英寸
-
-    // 1. 先检测明确标识，明确平板UA
-    if (/iPad|Tablet|PlayBook|Silk|Kindle|KFTT|KFOT|SM-T|GT-P|SGP/i.test(ua)) {
-        return "tablet";
-    }
-
-    // 2. 检测iPadOS伪装Mac，检测到iPad
-    if (/Macintosh/i.test(ua) && hasTouch && screenWidth >= 768) {
-        return "tablet";
-    }
-
-    // 3. Android平板（有Android但没有Mobile标识，且宽度足够大）
-    if (/Android/i.test(ua) && !/Mobile/i.test(ua) && screenWidth >= 600) {
-        return "tablet";
-    }
-
-    // 4. 手机检测（包含各种手机标识）
-    if (/Mobi|iPhone|iPod|BlackBerry|Windows Phone|Opera Mini|IEMobile|WPDesktop|Android.*Mobile|Mobile.*Android/i.test(ua)) {
-        // // 排除大屏手机（物理尺寸 > 7寸）
-        // if (physicalDiagonal > 7 && screenWidth >= 600) {
-        //     console.log('大屏手机，按平板处理');
-        //     return "tablet";
-        // }
-        return "mobile";
-    }
-
-    // 5. 根据屏幕尺寸和触摸能力综合判断
-    if (hasTouch) {
-        // 小屏带触摸 - 判定为手机
-        if (screenWidth < 600) {
-            return "mobile";
-        }
-
-        // 中屏带触摸 - 需要进一步判断
-        if (screenWidth >= 600 && screenWidth <= 1366) {
-            const aspectRatio = screenWidth / screenHeight;
-            const isTabletRatio = aspectRatio > 1.2 && aspectRatio < 1.8;
-
-            // 物理尺寸判断，中屏触屏 + 物理尺寸 >= 7寸，判为平板
-            if (physicalDiagonal >= 7) {
-                return "tablet";
-            }
-
-            // 典型平板比例，中屏触屏 + 平板比例，判为平板
-            if (isTabletRatio) {
-                return "tablet";
-            }
-
-            // 检查是否为Windows设备，Windows触屏设备，判为桌面PC
-            if (/Windows|Win64|WOW64/i.test(ua)) {
-                return "desktop";
-            }
-
-            console.log('中屏触屏但不符合平板特征，判为手机');
-            return "mobile";
-        }
-    }
-
-    // 6. 大屏无触摸 - 判为桌面
-    if (screenWidth > 1024) {
-        return "desktop";
-    }
-
-    // 7. 默认返回 - mobile
-    return "mobile";
-};
 // 生命周期
 onMounted(() => {
     urlInfo.value = window.location.href
     callbackUrl.value = CALLBACK_URL
-    const deviceType = detectDeviceType();
-    console.log('设备类型:', deviceType)
+    // 处理主逻辑
     handleRouteParams()
-    if (deviceType === 'mobile') {
-        // 移动端登录
-    } else {
-        // 平板和PC端登录
-    }
 })
 
 onUnmounted(() => {

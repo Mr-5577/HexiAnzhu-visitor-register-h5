@@ -1,31 +1,39 @@
 <template>
     <view class="container">
-        <!-- 项目名称 -->
-        <view class="project-card">
-            <text class="project-name">{{ projectName }}</text>
-        </view>
-
-        <!-- 签到人信息 -->
-        <view class="user-card">
-            <view class="user-avatar">
-                <text class="avatar-text">{{ userName.charAt(0) }}</text>
+        <template v-if="userInfo.id">
+            <!-- 项目名称 -->
+            <view class="project-card">
+                <text class="project-name">{{ userInfo.projName || '-' }}</text>
             </view>
-            <view class="user-info">
-                <text class="user-name">{{ userName }}</text>
-                <text class="sign-time">登录时间：{{ signTime }}</text>
+
+            <!-- 签到人信息 -->
+            <view class="user-card">
+                <view class="user-avatar">
+                    <text class="avatar-text">{{ userInfo.salerName ? userInfo.salerName.charAt(0) : '-' }}</text>
+                </view>
+                <view class="user-info">
+                    <text class="user-name">{{ userInfo.salerName || '-' }}</text>
+                    <text class="sign-time">登录时间：{{ signTime || '-' }}</text>
+                </view>
             </view>
-        </view>
 
-        <!-- 接待顺序 -->
-        <view class="queue-card">
-            <text class="queue-label">当前接待顺序</text>
-            <text class="queue-number">{{ queueNumber }}</text>
-        </view>
+            <!-- 接待顺序 -->
+            <view class="queue-card">
+                <text class="queue-label">当前接待顺序</text>
+                <text class="queue-number">{{ queueNumber || '-' }}</text>
+            </view>
 
-        <!-- 按钮区域 -->
-        <view class="button-group">
-            <button class="btn btn-signin" @click="handleSignIn">签到</button>
-            <button class="btn btn-signout" @click="handleSignOut">签退</button>
+            <!-- 按钮区域 -->
+            <view class="button-group">
+                <button class="btn btn-signin" @click="handleSignIn">签到</button>
+                <button class="btn btn-signout" @click="handleSignOut">签退</button>
+            </view>
+        </template>
+        <view class="not-permission" v-else>
+            <view class="empty-state">
+                <text class="empty-title">暂无签到权限</text>
+                <text class="empty-desc">您当前没有该项目的签到权限</text>
+            </view>
         </view>
     </view>
 </template>
@@ -36,11 +44,9 @@ import { ref } from 'vue'
 import dayjs from 'dayjs'
 import { visitorRegisterApi } from '@/common/api.js'
 
-// 项目名称
-const projectName = ref('')
-// 签到人姓名
-const userName = ref('张三')
-// 签到时间
+// 用户信息
+const userInfo = ref({})
+// 登录时间
 const signTime = ref('')
 // 接待顺序
 const queueNumber = ref(0)
@@ -50,43 +56,67 @@ const updateSignTime = () => {
     signTime.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
 }
 
-// 获取接待顺序
-const fetchQueueNumber = async (options) => {
+// 获取用户信息
+const getUserInfo = async (projId) => {
     try {
-        // 调用接口获取当前排队序号
-        const res = await uni.request({
-            url: '/api/queue/number',
-            method: 'GET',
-            data: {
-                projectId: options.projectId
-            }
-        })
-        if (res.data.code === 200) {
-            queueNumber.value = res.data.data.queueNumber
+        const res = await visitorRegisterApi.getSalerInfo({ projId })
+        if (res.code === 200) {
+            userInfo.value = res.data || {}
         }
     } catch (error) {
-        // 模拟数据
-        queueNumber.value = Math.floor(Math.random() * 50) + 1
     }
 }
-
+// 查询AB位列表
+const fetchSortList = async () => {
+    const projId = userInfo.value?.projId || ''
+    const salerId = userInfo.value?.salerId || ''
+    if (!projId || !salerId) {
+        queueNumber.value = 0
+        return
+    }
+    try {
+        const res = await visitorRegisterApi.getSalerList({ projId: projId })
+        if (res.code === 200) {
+            const listData = res.data || []
+            // 获取已签到列表
+            const signedList = listData.filter(item => item.lastSignStatus === 1)
+            // 找到当前用户在已签到列表中的位置
+            const indexInSigned = signedList.findIndex(item => item.salerId === salerId)
+            // 排名 = 索引 + 1（找不到为0）
+            queueNumber.value = indexInSigned !== -1 ? indexInSigned + 1 : 0
+        }
+    } catch (error) {
+        queueNumber.value = 0
+    }
+}
 // 签到
 const handleSignIn = async () => {
+    if (!userInfo.value.id) {
+        uni.showToast({
+            title: '用户信息异常，无用户ID',
+            icon: 'none'
+        })
+        return
+    }
     try {
         uni.showLoading({ title: '签到中...' })
-        const res = await visitorRegisterApi.setSignIn({ id: '' })
+        const res = await visitorRegisterApi.setSignIn({ id: userInfo.value.id })
         if (res.code === 200) {
             // 更新签到时间
             updateSignTime()
-            // 签到成功后重新获取排队顺序
-            fetchQueueNumber()
-            setTimeout(() => {
-                uni.hideLoading()
-                uni.showToast({
-                    title: '签到成功',
-                    icon: 'success'
-                })
-            }, 500)
+            uni.hideLoading()
+            uni.showToast({
+                title: '签到成功',
+                icon: 'success'
+            })
+            // 获取置业顾问列表并查询最新的排序
+            fetchSortList()
+        } else {
+            uni.hideLoading()
+            uni.showToast({
+                title: res.message || '签到失败',
+                icon: 'none'
+            })
         }
     } catch (error) {
         uni.hideLoading()
@@ -95,21 +125,19 @@ const handleSignIn = async () => {
 
 // 签退
 const handleSignOut = () => {
+    if (!userInfo.value.id) {
+        uni.showToast({
+            title: '用户信息异常，无用户ID',
+            icon: 'none'
+        })
+        return
+    }
     uni.showModal({
         title: '提示',
         content: '确认签退吗？',
         success: (res) => {
             if (res.confirm) {
-                uni.showLoading({ title: '签退中...' })
-                setTimeout(() => {
-                    uni.hideLoading()
-                    uni.showToast({
-                        title: '签退成功',
-                        icon: 'success'
-                    })
-                    // 签退后重置排队顺序
-                    queueNumber.value = 0
-                }, 500)
+                fetchSignOut()
             }
         }
     })
@@ -117,35 +145,33 @@ const handleSignOut = () => {
 // 签退请求
 const fetchSignOut = () => {
     uni.showLoading({ title: '签退中...' })
-    visitorRegisterApi.setSignOut({ id: '' }).then((res) => {
+    visitorRegisterApi.setSignOut({ id: userInfo.value.id }).then((res) => {
         if (res.code === 200) {
             uni.hideLoading()
             uni.showToast({
                 title: '签退成功',
                 icon: 'success'
             })
-            // 签退后重置排队顺序
-            queueNumber.value = 0
+            // 获取置业顾问列表并查询最新的排序
+            fetchSortList()
+        } else {
+            uni.hideLoading()
+            uni.showToast({
+                title: '签退失败',
+                icon: 'none'
+            })
         }
     }).catch(() => {
         uni.hideLoading()
     })
 }
-
-// 获取URL参数
-onLoad((options) => {
-    // 从二维码获取项目名称
-    projectName.value = decodeURIComponent(options.projectName || '测试项目')
-    // 获取当前用户信息（从本地存储或登录信息获取）
-    const userInfo = uni.getStorageSync('userInfo')
-    if (userInfo) {
-        userName.value = userInfo.name || '未知用户'
+onLoad(async (options) => {
+    console.log(options)
+    if (options.projId) {
+        updateSignTime()
+        await getUserInfo(options.projId)
+        fetchSortList()
     }
-    // 获取当前时间
-    updateSignTime()
-
-    // 获取接待顺序（从接口获取）
-    fetchQueueNumber(options)
 })
 </script>
 
@@ -167,25 +193,17 @@ page {
 .project-card {
     background: #fff;
     border-radius: 8rpx;
-    padding: 40rpx 30rpx;
-    margin-bottom: 24rpx;
-    padding: 30rpx;
-    box-sizing: border-box;
-}
-
-// 项目名称卡片
-.project-card {
-    background: #fff;
-    border-radius: 8rpx;
-    padding: 40rpx 30rpx;
+    padding: 50rpx 30rpx;
     margin-bottom: 24rpx;
     border: 1rpx solid #fbfbfb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
     .project-name {
-        font-size: 32rpx;
-        font-weight: normal;
+        font-size: 40rpx;
+        font-weight: 500;
         color: #333;
-        line-height: 1.4;
     }
 }
 
@@ -246,13 +264,13 @@ page {
 
     .queue-label {
         font-size: 28rpx;
-        color: #999;
+        color: #707070;
         display: block;
         margin-bottom: 20rpx;
     }
 
     .queue-number {
-        font-size: 80rpx;
+        font-size: 64rpx;
         font-weight: normal;
         color: #333;
         margin: 0 8rpx;
@@ -292,6 +310,39 @@ page {
         &:active {
             opacity: 0.7;
         }
+    }
+}
+
+.not-permission {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+    
+    .empty-state {
+        text-align: center;
+        padding: 40rpx;
+        
+        .empty-title {
+            display: block;
+            font-size: 32rpx;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 16rpx;
+        }
+        
+        .empty-desc {
+            display: block;
+            font-size: 28rpx;
+            color: #999;
+            margin-bottom: 60rpx;
+        }
+        
     }
 }
 </style>

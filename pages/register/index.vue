@@ -9,7 +9,6 @@
                 自然来访
             </view>
         </view>
-
         <!-- 表单内容 -->
         <scroll-view class="form-scroll" scroll-y>
             <view class="form-container">
@@ -17,7 +16,7 @@
                     <!-- 项目 -->
                     <view class="form-item">
                         <text class="label required">项目</text>
-                        <picker mode="selector" :range="salesOfficeList" range-key="name" @change="onSalesOfficeChange">
+                        <picker mode="selector" :range="projectList" range-key="name" @change="onSalesOfficeChange">
                             <view class="picker">
                                 {{ formData.visitProjName || '请选择项目' }}
                             </view>
@@ -32,12 +31,12 @@
                     <!-- 客户电话 -->
                     <view class="form-item">
                         <text class="label required">客户电话</text>
-                        <input class="input" v-model="formData.custTel" type="number" placeholder="请输入客户电话"
+                        <input class="input" v-model="formData.custTel" type="tel" placeholder="请输入客户电话"
                             maxlength="11" />
                     </view>
                     <view class="form-item">
                         <text class="label">客户电话2</text>
-                        <input class="input" v-model="formData.custTel2" type="number" placeholder="请输入客户电话"
+                        <input class="input" v-model="formData.custTel2" type="tel" placeholder="请输入客户电话"
                             maxlength="11" />
                     </view>
 
@@ -64,13 +63,19 @@
                     </view>
 
                     <!-- 根据到访方式显示不同字段 -->
-                    <template v-if="visitType === 'channel'">
+                    <template
+                        v-if="visitType === 'channel' && (formData.visitTypeId == 2 || formData.visitTypeId == 3)">
                         <!-- 报备按钮 - 只有选择 内渠、外渠分销才展示 -->
-                        <view class="form-report" v-show="formData.visitTypeId == 2 || formData.visitTypeId == 3">
+                        <view class="form-report">
                             <view class="quick-report-btn" @click="openReportPopup">
                                 <text class="btn-text">选择报备</text>
                                 <text class="btn-arrow">›</text>
                             </view>
+                        </view>
+
+                        <view class="form-item">
+                            <text class="label">渠道公司</text>
+                            <input class="input" v-model="formData.reportCom" disabled placeholder="渠道公司" />
                         </view>
 
                         <view class="form-item">
@@ -80,37 +85,24 @@
 
                         <view class="form-item">
                             <text class="label required">带访电话</text>
-                            <input class="input" v-model="formData.bringTel" type="number" maxlength="11"
+                            <input class="input" v-model="formData.bringTel" type="tel" maxlength="11"
                                 placeholder="请输入带访电话" />
                         </view>
-                        <!-- 只有选择 内渠、外渠分销才展示报备信息 -->
-                        <template
-                            v-if="visitType === 'channel' && (formData.visitTypeId == 2 || formData.visitTypeId == 3)">
-                            <view class="form-item">
-                                <text class="label">报备人</text>
-                                <input class="input" v-model="formData.reporter" disabled placeholder="报备人" />
-                            </view>
 
-                            <view class="form-item">
-                                <text class="label">报备时间</text>
-                                <picker mode="date" :value="formData.reportTime" disabled @change="onReportTimeChange">
-                                    <view class="report-picker">
-                                        {{ formData.reportTime || '报备时间' }}
-                                    </view>
-                                </picker>
-                            </view>
-                        </template>
+                        <view class="form-item">
+                            <text class="label">报备人</text>
+                            <input class="input" v-model="formData.reporter" disabled placeholder="报备人" />
+                        </view>
+
+                        <view class="form-item">
+                            <text class="label">报备时间</text>
+                            <picker mode="date" :value="formData.reportTime" disabled @change="onReportTimeChange">
+                                <view class="report-picker">
+                                    {{ formData.reportTime || '报备时间' }}
+                                </view>
+                            </picker>
+                        </view>
                     </template>
-
-                    <!-- 到访时间 -->
-                    <view class="form-item">
-                        <text class="label required">到访时间</text>
-                        <picker mode="date" :value="formData.visitTime" @change="onVisitTimeChange">
-                            <view class="picker">
-                                {{ formData.visitTime || '请选择到访时间' }}
-                            </view>
-                        </picker>
-                    </view>
 
                     <!-- 知晓途径 -->
                     <!-- <view class="form-item flex-column">
@@ -136,7 +128,7 @@
             </view>
             <!-- 底部确认按钮 -->
             <view class="bottom-btn">
-                <button class="confirm-btn" :disabled="!isFormValid" @click="handleSubmit">
+                <button class="confirm-btn" :disabled="!isFormValid || isSubmitting" @click="handleSubmit">
                     确认登记
                 </button>
             </view>
@@ -147,6 +139,7 @@
 </template>
 
 <script setup>
+import dayjs from 'dayjs'
 import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
 import ReportPopup from './components/report-pop-up.vue'
@@ -155,7 +148,6 @@ import { transformData } from '@/utils/common.js'
 
 // 来访类型
 const visitType = ref('channel') // natural: 自然来访, channel: 渠道来访
-
 // 表单数据
 const formData = ref({
     custName: '', // 客户姓名
@@ -166,43 +158,44 @@ const formData = ref({
     visitTypeName: '', // 到访方式name
     bringMan: '',      // 带访人
     bringTel: '', // 带访电话
+    reportCom: '', // 报备公司
     reportId: '', // 报备ID
     reporter: '',      // 报备人
     reportTime: '',    // 报备时间
-    visitTime: '', // 到访时间
     knowWayId: '', // 知晓途径ID
     knowWayName: '', // 知晓途径name
     visitProjId: '', // 项目ID
     visitProjName: '' // 项目
 })
-
 // 来访方式列表
 const visitMethodList = ref([])
 // 来访途径列表
 const channelList = ref([])
 // 项目列表
-const salesOfficeList = ref([])
-
+const projectList = ref([])
+// 提交锁
+const isSubmitting = ref(false)
 // 表单验证
 const isFormValid = computed(() => {
     // 客户电话验证
     const isPhoneValid = /^1[3-9]\d{9}$/.test(formData.value.custTel)
+    // 客户电话2验证（如果填写了）
+    const isPhone2Valid = !formData.value.custTel2 || /^1[3-9]\d{9}$/.test(formData.value.custTel2)
     const baseValid =
         formData.value.custName &&
         isPhoneValid &&
+        isPhone2Valid &&
         formData.value.visitNum > 0 &&
         formData.value.visitTypeName &&
-        formData.value.visitTime &&
         formData.value.visitProjName &&
         formData.value.knowWayName
 
-    if (visitType.value === 'channel') {
+    if (visitType.value === 'channel' && (formData.value.visitTypeId == 2 || formData.value.visitTypeId == 3)) {
         const isBringPhoneValid = /^1[3-9]\d{9}$/.test(formData.value.bringTel)
         return baseValid &&
             formData.value.bringMan &&
             isBringPhoneValid
     }
-
     return baseValid
 })
 // 初始化表单数据
@@ -216,10 +209,10 @@ const resetForm = () => {
         visitTypeName: '', // 到访方式name
         bringMan: '',      // 带访人
         bringTel: '', // 带访电话
+        reportCom: '', // 报备公司
         reportId: '', // 报备ID
         reporter: '',      // 报备人
         reportTime: '',    // 报备时间
-        visitTime: '', // 到访时间
         knowWayId: '', // 知晓途径
         visitProjId: '', // 项目ID
         visitProjName: '' // 项目
@@ -231,26 +224,30 @@ const increasePeople = () => {
         formData.value.visitNum++
     }
 }
-
 // 减少人数
 const decreasePeople = () => {
     if (formData.value.visitNum > 1) {
         formData.value.visitNum--
     }
 }
-
 // 切换Tab
 const switchTab = (type) => {
     visitType.value = type
     resetForm()
-    // 到访方式默认 自然到访
-    const targetData = visitMethodList.value.find(item => item.name === '自然到访')
-    if (targetData) {
-        formData.value.visitTypeId = targetData.id
-        formData.value.visitTypeName = targetData.name
+    // 只有一个项目时默认选上
+    if (projectList.value.length > 0 && projectList.value.length === 1) {
+        formData.value.visitProjId = projectList.value[0].id
+        formData.value.visitProjName = projectList.value[0].name
+    }
+    if (type === 'natural') {
+        // 到访方式默认 自然到访
+        const targetData = visitMethodList.value.find(item => item.id === '0')
+        if (targetData) {
+            formData.value.visitTypeId = targetData.id
+            formData.value.visitTypeName = targetData.name
+        }
     }
 }
-
 // 到访方式选择
 const onVisitMethodChange = (e) => {
     const index = e.detail.value
@@ -259,18 +256,13 @@ const onVisitMethodChange = (e) => {
 
     // 清除报备人相关信息
     formData.value.reportId = ''
+    formData.value.reportCom = ''
     formData.value.reporter = ''
     formData.value.reportTime = ''
 }
-
 // 报备时间选择
 const onReportTimeChange = (e) => {
     formData.value.reportTime = e.detail.value
-}
-
-// 到访时间选择
-const onVisitTimeChange = (e) => {
-    formData.value.visitTime = e.detail.value
 }
 // 知晓途径选择
 const onKnowWayChange = (e) => {
@@ -282,13 +274,15 @@ const onKnowWayChange = (e) => {
 // 项目选择
 const onSalesOfficeChange = (e) => {
     const index = e.detail.value
-    formData.value.visitProjId = salesOfficeList.value[index].id
-    formData.value.visitProjName = salesOfficeList.value[index].name
+    formData.value.visitProjId = projectList.value[index].id
+    formData.value.visitProjName = projectList.value[index].name
 }
 
 // 提交表单
-const handleSubmit = () => {
-    console.log('提交表单数据:', formData.value)
+const handleSubmit = async () => {
+    if (isSubmitting.value) {
+        return
+    }
     if (!isFormValid.value) {
         uni.showToast({
             title: '请填写完整信息',
@@ -297,7 +291,10 @@ const handleSubmit = () => {
         return
     }
 
-    // 准备提交数据
+    isSubmitting.value = true
+    console.log('提交表单数据:', formData.value)
+
+    // 提交数据
     const submitData = {
         visitType: visitType.value, // 来访类型
         custName: formData.value.custName, // 客户姓名
@@ -308,18 +305,14 @@ const handleSubmit = () => {
         reportId: formData.value.reportId, // 报备ID
         bringMan: formData.value.bringMan, // 带访人
         bringTel: formData.value.bringTel, // 带访电话
-        visitTime: `${formData.value.visitTime} 00:00:00`, // 到访时间
+        visitTime: dayjs().format('YYYY-MM-DD HH:mm:ss'), // 到访时间
         visitProjId: formData.value.visitProjId, // 项目ID
         knowWayId: formData.value.knowWayId, // 知晓途径ID
     }
-    // // 存储到本地
-    // uni.setStorageSync('registerSuccessData', formData.value)
-    // // 跳转到登记成功页面
-    // uni.navigateTo({
-    //     url: `/pages/register/success`
-    // })
     uni.showLoading({ title: '提交中...' })
-    visitorRegisterApi.addVisitRec(submitData).then(res => {
+    try {
+        const res = await visitorRegisterApi.addVisitRec(submitData)
+        uni.hideLoading()
         if (res.code === 200) {
             uni.showToast({
                 title: '登记成功',
@@ -328,6 +321,7 @@ const handleSubmit = () => {
             // 存储到本地
             const storageData = {
                 ...formData.value,
+                visitTime: submitData.visitTime, // 到访时间
                 visitType: visitType.value, // 来访类型
             }
             uni.setStorageSync('registerSuccessData', storageData)
@@ -335,11 +329,21 @@ const handleSubmit = () => {
             uni.navigateTo({
                 url: `/pages/register/success?id=${res.data}`
             })
+        } else {
+            uni.showToast({
+                title: res.message || '登记失败',
+                icon: 'none'
+            })
         }
-    }).finally(() => {
+    } catch (error) {
+        uni.showToast({
+            title: '网络错误，请重试',
+            icon: 'none'
+        })
         uni.hideLoading()
-    })
-
+    } finally {
+        isSubmitting.value = false
+    }
 }
 // 报备弹窗ref
 const reportPopupRef = ref(null)
@@ -362,14 +366,17 @@ const onReportSelected = (reportData) => {
     }
     // 回填报备信息到表单
     formData.value.reportId = reportData.reportManId
+    formData.value.reportCom = reportData.reportCom
     formData.value.reporter = reportData.reportMan
     formData.value.reportTime = reportData.reportTime
     // 回填客户信息
     formData.value.custName = reportData.custName
     formData.value.custTel = reportData.custTel
-    formData.value.custTel2 = reportData.custTel2
-
+    if (reportData.custTel2) {
+        formData.value.custTel2 = reportData.custTel2
+    }
 }
+// 知晓途径数据
 const fetchGetKnowWay = async () => {
     try {
         const res = await visitorRegisterApi.getKnowWay()
@@ -378,11 +385,21 @@ const fetchGetKnowWay = async () => {
             const [firstData, ...restData] = data
             const { optionStr, valueStr } = firstData || {}
             channelList.value = transformData(optionStr, valueStr)
+        } else {
+            uni.showToast({
+                title: '获取知晓途径失败',
+                icon: 'none'
+            })
         }
     } catch (error) {
         channelList.value = []
+        uni.showToast({
+            title: '网络错误',
+            icon: 'none'
+        })
     }
 }
+// 到访方式数据
 const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
@@ -391,15 +408,24 @@ const fetchGetVisitType = async () => {
             const [firstData, ...restData] = data
             const { optionStr, valueStr } = firstData || {}
             visitMethodList.value = transformData(optionStr, valueStr)
+        } else {
+            uni.showToast({
+                title: '获取到访方式失败',
+                icon: 'none'
+            })
         }
     } catch (error) {
         visitMethodList.value = []
+        uni.showToast({
+            title: '网络错误',
+            icon: 'none'
+        })
     }
 }
-
+// 项目数据
 const fetchGetProjList = async () => {
     try {
-        const res = await visitorRegisterApi.getProjList()
+        const res = await visitorRegisterApi.getProjList({ isAll: false })
         if (res.code === 200) {
             const data = res.data || []
             const newData = data.map((item) => {
@@ -409,10 +435,24 @@ const fetchGetProjList = async () => {
                     name: item.projName
                 }
             })
-            salesOfficeList.value = newData
+            projectList.value = newData
+            // 只有一个项目时默认选上
+            if (newData.length > 0 && newData.length === 1) {
+                formData.value.visitProjId = newData[0].id
+                formData.value.visitProjName = newData[0].name
+            }
+        } else {
+            uni.showToast({
+                title: '获取项目列表失败',
+                icon: 'none'
+            })
         }
     } catch (error) {
-        salesOfficeList.value = []
+        projectList.value = []
+        uni.showToast({
+            title: '网络错误',
+            icon: 'none'
+        })
     }
 }
 const initFetchData = async () => {
@@ -425,6 +465,7 @@ onShow(() => {
 onHide(() => {
     visitType.value = 'channel'
     resetForm()
+    reportPopupRef.value?.closePopup()
 })
 onMounted(() => {
     // initFetchData()

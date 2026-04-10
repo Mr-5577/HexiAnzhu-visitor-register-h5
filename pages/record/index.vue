@@ -104,7 +104,7 @@
                 </view>
                 <view class="dialog-buttons">
                     <button class="cancel-btn" @click="closeAllocateDialog">取消</button>
-                    <button class="confirm-btn" @click="confirmAllocate">确定分配</button>
+                    <button class="confirm-btn" :disabled="isSubmitting" @click="confirmAllocate">确定分配</button>
                 </view>
             </view>
         </view>
@@ -176,25 +176,19 @@ const tempSearchForm = ref({
     custName: '',
     custTel: ''
 })
-
+const isSubmitting = ref(false)
 // 数据列表
 const recordList = ref([])
-
 // 项目数据
 const projectList = ref([])
-
 // 来访方式
 const visitMethodList = ref([])
-
 // 置业顾问
 const salerList = ref([])
-
 // 选中的ID列表
 const selectedIds = ref([])
-
 // 搜索弹窗引用
 const searchPopupRef = ref(null)
-
 // 重新分配弹窗控制
 const showAllocate = ref(false)
 const selectedConsultantId = ref(null)
@@ -281,7 +275,7 @@ const toggleSelectAll = () => {
 const viewDetail = (item) => {
     // 跳转到详情页面
     uni.navigateTo({
-        url: `/pages/record/record-detail?id=${item.id}`
+        url: `/pages/record/record-detail?id=${item?.id}`
     })
 }
 
@@ -305,6 +299,9 @@ const selectConsultant = (id) => {
 
 // 确认分配
 const confirmAllocate = async () => {
+    if (isSubmitting.value) {
+        return
+    }
     if (!selectedConsultantId.value) {
         uni.showToast({
             title: '请选择置业顾问',
@@ -312,6 +309,7 @@ const confirmAllocate = async () => {
         })
         return
     }
+    isSubmitting.value = true
     try {
         const params = {
             visitRecIds: selectedIds.value || [], // 选中的来访记录数据
@@ -328,8 +326,15 @@ const confirmAllocate = async () => {
                 title: `${res.message || '分配成功'}`,
                 icon: 'none'
             })
+        } else {
+            uni.showToast({
+                title: `${res.message || '分配失败'}`,
+                icon: 'none'
+            })
         }
-    } catch (error) { }
+    } catch (error) { } finally {
+        isSubmitting.value = false
+    }
 }
 
 // 查询
@@ -363,7 +368,7 @@ const getSalerTextRect = (val) => {
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
-        const res = await visitorRegisterApi.getProjList()
+        const res = await visitorRegisterApi.getProjList({ isAll: false })
         if (res.code === 200) {
             const data = res.data || []
             const newData = data.map((item) => {
@@ -420,6 +425,7 @@ const fetchGetSalerList = async () => {
 
 // 获取记录列表
 const getRecordList = async () => {
+    uni.showLoading({ title: '分配中...' })
     recordList.value = []
     try {
         uni.showLoading({
@@ -436,14 +442,15 @@ const getRecordList = async () => {
             params.visitTimeEnd = `${searchForm.value.visitDate} 23:59:59`
         }
         const res = await visitorRegisterApi.getVisitHis(params)
+        uni.hideLoading()
         if (res.code === 200) {
             const data = res.data || []
             recordList.value = data
         }
     } catch (error) {
         console.error('获取记录列表失败:', error)
-    } finally {
         uni.hideLoading()
+    } finally {
     }
 }
 

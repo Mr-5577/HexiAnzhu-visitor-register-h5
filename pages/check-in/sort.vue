@@ -3,6 +3,7 @@
         <!-- 顶部查询条件 -->
         <view class="search-bar">
             <view class="search-row">
+                <view class="selector-label">项目</view>
                 <view class="search-item">
                     <picker mode="selector" :range="projectList" range-key="name" :value="selectedProjectIndex"
                         @change="onProjectChange" style="width: 100%;">
@@ -13,7 +14,7 @@
                 </view>
                 <view class="search-buttons">
                     <!-- <button class="reset-btn" @click="resetSort">重置</button> -->
-                    <button class="search-btn" @click="handleSearch">查询</button>
+                    <!-- <button class="search-btn" @click="handleSearch">查询</button> -->
                 </view>
             </view>
         </view>
@@ -67,7 +68,7 @@ const projectList = ref([])
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
-        const res = await visitorRegisterApi.getProjList()
+        const res = await visitorRegisterApi.getProjList({ isAll: false })
         if (res.code === 200) {
             const data = res.data || []
             const newData = data.map((item) => {
@@ -90,6 +91,7 @@ const selectedProject = computed(() => projectList.value[selectedProjectIndex.va
 const onProjectChange = (e) => {
     const index = e.detail.value
     selectedProjectIndex.value = index
+    handleSearch()
 }
 
 // 重置查询
@@ -238,6 +240,8 @@ page {
 .container {
     width: 100%;
     height: 100%;
+    padding: 20rpx;
+    box-sizing: border-box;
     background: #f5f5f5;
     display: flex;
     flex-direction: column;
@@ -249,13 +253,20 @@ page {
 /* 查询条件样式 */
 .search-bar {
     background-color: #fff;
-    padding: 20rpx 30rpx;
+    padding: 20rpx 20rpx;
     border-bottom: 1rpx solid #f0f0f0;
     flex-shrink: 0;
 
     .search-row {
         display: flex;
+        align-items: center;
         gap: 20rpx;
+
+        .selector-label {
+            font-size: 28rpx;
+            color: #808080;
+            flex-shrink: 0; // 防止标签被压缩
+        }
 
         .search-item {
             flex: 1;
@@ -326,7 +337,7 @@ page {
 .list-section {
     border-radius: 16rpx;
     overflow: hidden;
-    padding: 12rpx 20rpx;
+    padding: 12rpx 0;
     box-sizing: border-box;
     border-radius: 20rpx;
     overflow-y: auto;
@@ -442,7 +453,7 @@ page {
 .save-section {
     flex-shrink: 0;
     background: transparent;
-    padding: 20rpx 30rpx 30rpx;
+    padding: 20rpx 30rpx;
     box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 
