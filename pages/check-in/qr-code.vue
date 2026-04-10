@@ -193,7 +193,7 @@ page {
     background-color: #ffffff;
     border-radius: 12rpx;
     padding: 20rpx 30rpx;
-    margin-bottom: 40rpx;
+    margin-bottom: 20rpx;
     gap: 20rpx;
 
     .selector-label {

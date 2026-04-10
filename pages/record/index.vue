@@ -311,13 +311,15 @@ const confirmAllocate = async () => {
     }
     isSubmitting.value = true
     try {
+        uni.showLoading({ title: '分配中...' })
         const params = {
             visitRecIds: selectedIds.value || [], // 选中的来访记录数据
             salerId: selectedConsultantId.value // 置业顾问ID
         }
         const res = await visitorRegisterApi.batchResetSaler(params)
+        // await new Promise(resolve => setTimeout(resolve, 500))
+        uni.hideLoading()
         if (res.code === 200) {
-            // await new Promise(resolve => setTimeout(resolve, 500))
             closeAllocateDialog() // 关闭选择顾问弹窗
             selectedConsultantId.value = null // 清除选中的置业顾问
             selectedIds.value = [] // 清除选中的客户数据
@@ -332,7 +334,9 @@ const confirmAllocate = async () => {
                 icon: 'none'
             })
         }
-    } catch (error) { } finally {
+    } catch (error) {
+        uni.hideLoading()
+     } finally {
         isSubmitting.value = false
     }
 }

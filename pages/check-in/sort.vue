@@ -9,6 +9,7 @@
                         @change="onProjectChange" style="width: 100%;">
                         <view class="search-picker">
                             {{ selectedProject?.name || '请选择项目' }}
+                            <view class="picker-arrow"></view>
                         </view>
                     </picker>
                 </view>
@@ -158,7 +159,7 @@ const initSortable = () => {
 
             // 拖拽开始回调
             onStart: () => {
-                console.log('开始拖拽')
+                // console.log('开始拖拽')
             },
             // 拖拽结束回调
             onEnd: (evt) => {
@@ -199,7 +200,6 @@ const destroySortable = () => {
 
 // 保存排序
 const saveSort = async () => {
-    console.log(listData.value)
     try {
         let params = []
         listData.value.forEach((item, index) => {
@@ -253,7 +253,7 @@ page {
 /* 查询条件样式 */
 .search-bar {
     background-color: #fff;
-    padding: 20rpx 20rpx;
+    padding: 20rpx 30rpx;
     border-bottom: 1rpx solid #f0f0f0;
     flex-shrink: 0;
 
@@ -272,28 +272,35 @@ page {
             flex: 1;
             display: flex;
             align-items: center;
+            background-color: #ffffff;
+            border-radius: 12rpx;
             gap: 16rpx;
 
             .search-picker {
                 flex: 1;
                 width: 100%;
-                height: 60rpx;
-                line-height: 60rpx;
-                background-color: #f5f5f5;
-                border-radius: 10rpx;
+                height: 64rpx;
+                line-height: 64rpx;
+                border: 1rpx solid #e4e7ed;
+                background-color: #f8f9fc;
+                border-radius: 12rpx;
                 padding: 0 20rpx;
                 font-size: 28rpx;
                 color: #808080;
-                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: space-between; // 让文字和箭头分布在两端
+                overflow: hidden; // 防止内容溢出
+                text-overflow: ellipsis; // 文字过长时显示省略号
+                white-space: nowrap;
 
-                &::after {
-                    content: '>';
-                    position: absolute;
-                    right: 20rpx;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #ccc;
-                    font-size: 24rpx;
+                .picker-arrow {
+                    width: 0;
+                    height: 0;
+                    border-left: 10rpx solid transparent;
+                    border-right: 10rpx solid transparent;
+                    border-top: 12rpx solid #909399;
+                    flex-shrink: 0; // 箭头不被压缩
                 }
             }
         }
