@@ -3,13 +3,8 @@
         <!-- 顶部项目下拉选择框 -->
         <view class="selector-wrapper">
             <view class="selector-label">项目</view>
-            <picker mode="selector" :range="projectList" :range-key="'name'" @change="onProjectChange"
-                :value="selectedIndex" class="picker-custom">
-                <view class="picker-content">
-                    {{ currentProject ? currentProject.name : '请选择项目' }}
-                    <view class="picker-arrow"></view>
-                </view>
-            </picker>
+            <CustomPicker v-model="selectedProjectId" :options="projectList" label-key="name" value-key="id"
+                placeholder="请选择项目" :spaceBetween="true" @change="onProjectChange" />
         </view>
 
         <!-- 二维码展示区域 -->
@@ -34,13 +29,17 @@ import QRCode from 'qrcode';
 import { ref, computed, onUnmounted, onMounted } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import config from '@/utils/config.js'
+import CustomPicker from '@/components/custom-picker/index.vue'
 
 // 项目列表
 const projectList = ref([])
-// 当前选中的项目索引
-const selectedIndex = ref(0)
+// 当前选中的项目ID
+const selectedProjectId = ref('')
 // 当前选中的项目
-const currentProject = computed(() => projectList.value[selectedIndex.value])
+const currentProject = computed(() => {
+    return projectList.value.find(item => item.id === selectedProjectId.value) || null
+})
+
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
@@ -57,7 +56,7 @@ const fetchGetProjList = async () => {
             projectList.value = newData
             // 默认选中第一个项目并生成二维码
             if (newData.length > 0) {
-                selectedIndex.value = 0
+                selectedProjectId.value = newData[0].id
                 await refreshQRCode()
             }
         }
@@ -65,6 +64,7 @@ const fetchGetProjList = async () => {
         projectList.value = []
     }
 }
+
 // 二维码URL
 const qrcodeUrl = ref('')
 const qrMessage = ref('二维码生成中...')
@@ -84,6 +84,7 @@ const getNextHalfHourDelay = () => {
     }
     return nextBoundary.getTime() - now.getTime()
 }
+
 // 清除自动刷新定时器
 const clearAutoRefresh = () => {
     if (autoRefreshTimer) {
@@ -91,6 +92,7 @@ const clearAutoRefresh = () => {
         autoRefreshTimer = null
     }
 }
+
 // 自动刷新二维码
 const scheduleAutoRefresh = () => {
     clearAutoRefresh()
@@ -106,6 +108,7 @@ const originUrl = `${config.baseUrlActual}/pages/login/autoLogin`
 // 签到页面路径
 // const originUrl = `http://sysa.hexianzhu.com/pages/check-in/sginIn`
 // const originUrl = `${config.baseUrlActual}/pages/check-in/sginIn`
+
 // 生成二维码 
 const generateQRCode = async (project) => {
     if (!project?.projId || !project?.projName) {
@@ -138,8 +141,8 @@ const generateQRCode = async (project) => {
 }
 
 // 项目切换处理
-const onProjectChange = async (e) => {
-    selectedIndex.value = e.detail.value
+const onProjectChange = async (value, selectedItem) => {
+    selectedProjectId.value = value
     await refreshQRCode()
 }
 
@@ -165,6 +168,7 @@ const refreshQRCode = async () => {
 onMounted(async () => {
     await fetchGetProjList()
 })
+
 onUnmounted(() => {
     clearAutoRefresh()
 })
@@ -201,48 +205,6 @@ page {
         font-size: 28rpx;
         color: #808080;
         flex-shrink: 0; // 防止标签被压缩
-    }
-
-    // 给 picker 组件设置 flex: 1 占满剩余宽度
-    .picker-custom {
-        flex: 1;
-        min-width: 0; // 防止 flex 子元素溢出
-    }
-
-    .picker-content {
-        width: 100%; // 占满父级宽度
-        height: 64rpx;
-        line-height: 64rpx;
-        background-color: #f8f9fc;
-        border-radius: 12rpx;
-        padding: 0 32rpx; // 修改 padding，只保留左右内边距
-        font-size: 28rpx;
-        color: #808080;
-        display: flex;
-        align-items: center;
-        justify-content: space-between; // 让文字和箭头分布在两端
-        gap: 16rpx;
-        border: 1rpx solid #e4e7ed;
-        box-sizing: border-box;
-        overflow: hidden; // 防止内容溢出
-        text-overflow: ellipsis; // 文字过长时显示省略号
-        white-space: nowrap;
-    }
-
-    .picker-content span {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .picker-arrow {
-        width: 0;
-        height: 0;
-        border-left: 10rpx solid transparent;
-        border-right: 10rpx solid transparent;
-        border-top: 12rpx solid #909399;
-        flex-shrink: 0; // 箭头不被压缩
     }
 }
 

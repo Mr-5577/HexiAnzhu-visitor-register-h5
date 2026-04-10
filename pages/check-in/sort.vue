@@ -5,13 +5,8 @@
             <view class="search-row">
                 <view class="selector-label">项目</view>
                 <view class="search-item">
-                    <picker mode="selector" :range="projectList" range-key="name" :value="selectedProjectIndex"
-                        @change="onProjectChange" style="width: 100%;">
-                        <view class="search-picker">
-                            {{ selectedProject?.name || '请选择项目' }}
-                            <view class="picker-arrow"></view>
-                        </view>
-                    </picker>
+                    <CustomPicker v-model="selectedProjectId" :options="projectList" label-key="name" value-key="id"
+                        placeholder="请选择项目" :spaceBetween="true" @change="onProjectChange" />
                 </view>
                 <view class="search-buttons">
                     <!-- <button class="reset-btn" @click="resetSort">重置</button> -->
@@ -60,12 +55,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import Sortable from 'sortablejs'
 import { visitorRegisterApi } from '@/common/api.js'
+import CustomPicker from '@/components/custom-picker/index.vue'
 
 // 项目列表
 const projectList = ref([])
+// 选中的项目ID
+const selectedProjectId = ref('')
+
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
@@ -80,38 +79,42 @@ const fetchGetProjList = async () => {
                 }
             })
             projectList.value = newData
+            // 默认选中第一个项目
+            if (newData.length > 0) {
+                selectedProjectId.value = newData[0].id
+            }
         }
     } catch (error) {
         projectList.value = []
     }
 }
-// 选中的项目索引
-const selectedProjectIndex = ref(0)
-const selectedProject = computed(() => projectList.value[selectedProjectIndex.value])
+
 // 项目切换
-const onProjectChange = (e) => {
-    const index = e.detail.value
-    selectedProjectIndex.value = index
-    handleSearch()
+const onProjectChange = async (value, selectedItem) => {
+    selectedProjectId.value = value
+    await handleSearch()
 }
 
 // 重置查询
 const resetSort = () => {
     // 重置项目为默认
-    selectedProjectIndex.value = 0
+    if (projectList.value.length > 0) {
+        selectedProjectId.value = projectList.value[0].id
+    }
     handleSearch()
 }
 
 // 查询
-const handleSearch = () => {
-    fetchSortList()
+const handleSearch = async () => {
+    await fetchSortList()
 }
 
 // 列表数据
 const listData = ref([])
+
 // 查询列表
 const fetchSortList = async () => {
-    const id = selectedProject.value?.id || ''
+    const id = selectedProjectId.value
     if (!id) return
     listData.value = []
     try {
@@ -120,10 +123,12 @@ const fetchSortList = async () => {
             listData.value = res.data || []
         }
     } catch (error) {
+        console.error('获取列表失败:', error)
     }
 }
 
 let sortableInstance = null
+
 const initSortable = () => {
     // 销毁旧实例
     destroySortable()
@@ -147,7 +152,6 @@ const initSortable = () => {
             preventOnFilter: false,
 
             // 防止元素飞出屏幕
-            preventOnFilter: false,
             fallbackClass: 'sortable-fallback',
             fallbackOnBody: false,  // 防止拖拽元素跑到 body 上
             fallbackTolerance: 0,
@@ -189,6 +193,7 @@ const initSortable = () => {
         })
     }
 }
+
 // 销毁 SortableJS 实例
 const destroySortable = () => {
     if (sortableInstance) {
@@ -214,16 +219,24 @@ const saveSort = async () => {
                 title: `${res.message || '保存成功!'}`,
                 icon: 'none'
             })
-            fetchSortList()
+            await fetchSortList()
         }
     } catch (error) {
+        console.error('保存排序失败:', error)
+        uni.showToast({
+            title: '保存失败',
+            icon: 'none'
+        })
     }
 }
 
 onMounted(async () => {
     await fetchGetProjList()
     await fetchSortList()
-    initSortable()
+    // 等待 DOM 渲染完成后再初始化拖拽
+    nextTick(() => {
+        initSortable()
+    })
 })
 
 onUnmounted(() => {
@@ -275,34 +288,6 @@ page {
             background-color: #ffffff;
             border-radius: 12rpx;
             gap: 16rpx;
-
-            .search-picker {
-                flex: 1;
-                width: 100%;
-                height: 64rpx;
-                line-height: 64rpx;
-                border: 1rpx solid #e4e7ed;
-                background-color: #f8f9fc;
-                border-radius: 12rpx;
-                padding: 0 20rpx;
-                font-size: 28rpx;
-                color: #808080;
-                display: flex;
-                align-items: center;
-                justify-content: space-between; // 让文字和箭头分布在两端
-                overflow: hidden; // 防止内容溢出
-                text-overflow: ellipsis; // 文字过长时显示省略号
-                white-space: nowrap;
-
-                .picker-arrow {
-                    width: 0;
-                    height: 0;
-                    border-left: 10rpx solid transparent;
-                    border-right: 10rpx solid transparent;
-                    border-top: 12rpx solid #909399;
-                    flex-shrink: 0; // 箭头不被压缩
-                }
-            }
         }
     }
 
@@ -349,6 +334,10 @@ page {
     border-radius: 20rpx;
     overflow-y: auto;
     flex: 1;
+
+    .list-wrapper {
+        min-height: 100%;
+    }
 
     .list-header {
         display: flex;

@@ -36,7 +36,7 @@
                         <text class="detail-value">{{ detailData.bringMan || '-' }}</text>
                     </view>
                     <view class="detail-row">
-                        <text class="detail-label">带访电话：</text>
+                        <text class="detail-label">带访人电话：</text>
                         <text class="detail-value">{{ detailData.bringTel || '-' }}</text>
                     </view>
                     <view class="detail-row">
