@@ -137,7 +137,7 @@ const handleTokenLogin = async (token, dataParam) => {
         showMessage('登录成功，正在跳转...')
         await new Promise(resolve => setTimeout(resolve, 800))
         // H5 跳转到首页
-        uni.redirectTo({
+        uni.reLaunch({
             url: '/pages/register/index'
         })
         return
@@ -151,7 +151,7 @@ const handleTokenLogin = async (token, dataParam) => {
 
         const { home } = getQueryParams()
         // H5 跳转到目标页面
-        uni.redirectTo({
+        uni.reLaunch({
             url: home || '/pages/register/index'
         })
     } else {
