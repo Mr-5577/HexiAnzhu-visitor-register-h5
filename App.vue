@@ -11,7 +11,7 @@ export default {
 	onShow: function () {
 		// console.log('App Show')
 		// 每次显示页面都检查登录状态
-		// this.checkTokenBeforeEnter()
+		this.checkTokenBeforeEnter()
 	},
 	onHide: function () {
 		// console.log('App Hide')

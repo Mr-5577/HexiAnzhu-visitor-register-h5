@@ -7,7 +7,7 @@
     "transformPx" : false,
     "vueVersion" : "3",
     "h5" : {
-        "title" : "和喜·来访登记",
+        "title" : "来访登记",
         "router" : {
             "mode" : "history",
             "base" : "/"

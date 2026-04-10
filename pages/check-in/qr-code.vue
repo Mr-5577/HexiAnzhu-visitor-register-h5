@@ -104,8 +104,8 @@ const scheduleAutoRefresh = () => {
 // const originUrl = 'http://sysa.hexianzhu.com/pages/login/autoLogin'
 const originUrl = `${config.baseUrlActual}/pages/login/autoLogin`
 // 签到页面路径
-// const originUrl = 'http://sysa.hexianzhu.com/pages/check-in/sginIn'
-// const originUrl = 'http://192.168.1.24:8099/pages/check-in/sginIn'
+// const originUrl = `http://sysa.hexianzhu.com/pages/check-in/sginIn`
+// const originUrl = `${config.baseUrlActual}/pages/check-in/sginIn`
 // 生成二维码 
 const generateQRCode = async (project) => {
     if (!project?.projId || !project?.projName) {
@@ -123,6 +123,7 @@ const generateQRCode = async (project) => {
             t: timestamp
         })
         const qrContent = `${originUrl}?${params.toString()}`
+        // const qrContent = `${originUrl}?projId=${projId}`
         const apiUrl = await QRCode.toDataURL(qrContent, {
             width: 200,
             margin: 2,
