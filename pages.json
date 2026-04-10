@@ -4,19 +4,22 @@
     {
       "path": "pages/register/index",
       "style": {
-        "navigationBarTitleText": "来访登记"
+        "navigationBarTitleText": "来访登记",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/record/index",
       "style": {
-        "navigationBarTitleText": "来访记录"
+        "navigationBarTitleText": "来访记录",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/check-in/index",
       "style": {
-        "navigationBarTitleText": "签到中心"
+        "navigationBarTitleText": "签到中心",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -30,37 +33,42 @@
       "path": "pages/login/autoLogin",
       "style": {
         "navigationBarTitleText": "自动登录",
-        "navigationStyle": "custom" // 启用自定义导航栏
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/register/success",
       "style": {
-        "navigationBarTitleText": "登记成功"
+        "navigationBarTitleText": "登记成功",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/record/record-detail",
       "style": {
-        "navigationBarTitleText": "来访详情"
+        "navigationBarTitleText": "来访详情",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/check-in/sort",
       "style": {
-        "navigationBarTitleText": "排序"
+        "navigationBarTitleText": "AB位排序",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/check-in/qr-code",
       "style": {
-        "navigationBarTitleText": "扫码签到"
+        "navigationBarTitleText": "扫码签到",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/check-in/list",
       "style": {
-        "navigationBarTitleText": "签到列表"
+        "navigationBarTitleText": "签到列表",
+        "navigationStyle": "custom"
       }
     }
   ],
