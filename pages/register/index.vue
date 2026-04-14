@@ -458,17 +458,17 @@ const initFetchData = async () => {
 }
 
 onShow(() => {
-    initFetchData()
+    // initFetchData()
 })
 
 onHide(() => {
-    visitType.value = 'channel'
-    resetForm()
-    reportPopupRef.value?.closePopup()
+    // visitType.value = 'channel'
+    // resetForm()
+    // reportPopupRef.value?.closePopup()
 })
 
 onMounted(() => {
-    // initFetchData()
+    initFetchData()
 })
 </script>
 

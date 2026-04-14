@@ -5,7 +5,8 @@
             <view class="query-info-content">
                 <view class="title">项目</view>
                 <CustomPicker v-model="searchForm.visitProjId" :options="projectList" label-key="name" value-key="id"
-                    placeholder="请选择项目" :spaceBetween="true" @change="handleProjectChange" />
+                    placeholder="请选择项目" :spaceBetween="true" @change="handleProjectChange"
+                    @pickerStateChange="pickerStateChange" />
             </view>
             <view class="filter-icon" @click="openSearchPopup">
                 <text class="search-text">更多筛选</text>
@@ -14,7 +15,7 @@
         </view>
 
         <!-- 表单内容 -->
-        <scroll-view class="customer-list" scroll-y>
+        <scroll-view class="customer-list" :scroll-y="isPickerOpen">
             <view v-if="recordList.length > 0" class="list-container">
                 <view v-for="(item, index) in recordList" :key="index" class="record-item">
                     <!-- 复选框 -->
@@ -182,6 +183,11 @@ const searchPopupRef = ref(null)
 // 重新分配弹窗控制
 const showAllocate = ref(false)
 const selectedConsultantId = ref(null)
+
+const isPickerOpen = ref(true)
+const pickerStateChange = (isOpen) => {
+    isPickerOpen.value = isOpen
+}
 
 // 是否全选
 const isAllSelected = computed(() => {

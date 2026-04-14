@@ -30,10 +30,10 @@ import List from './list.vue'
 
 const checkInType = ref('sort')
 onShow(() => {
-    checkInType.value = 'sort'
+    // checkInType.value = 'sort'
 })
 onHide(() => {
-    checkInType.value = ''
+    // checkInType.value = ''
 })
 </script>
 

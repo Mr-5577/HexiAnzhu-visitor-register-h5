@@ -8,8 +8,8 @@
             <view class="picker-arrow">›</view>
         </view>
 
-        <view v-if="showPicker" class="custom-picker-mask" @click="maskCloseHandler" @touchmove.prevent>
-            <view class="custom-picker-container-bottom" @click.stop @touchmove.stop>
+        <view v-if="showPicker" class="custom-picker-mask" @click="maskCloseHandler">
+            <view class="custom-picker-container-bottom" @click.stop>
                 <view class="picker-header">
                     <text class="picker-cancel" @click="closePicker">取消</text>
                     <text class="picker-confirm" @click="confirmPicker">确定</text>
@@ -47,7 +47,7 @@ const props = defineProps({
     maskClosable: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['update:modelValue', 'change'])
+const emit = defineEmits(['update:modelValue', 'change', 'pickerStateChange'])
 
 const showPicker = ref(false)
 const tempSelectedIndex = ref(0)
@@ -63,6 +63,7 @@ const openPicker = () => {
     const currentIndex = props.options.findIndex(item => item[props.valueKey] == props.modelValue)
     tempSelectedIndex.value = currentIndex !== -1 ? currentIndex : 0
     showPicker.value = true
+    emit('pickerStateChange', false)
 }
 
 const selectOption = (idx) => {
@@ -77,10 +78,12 @@ const confirmPicker = () => {
         emit('change', newValue, selected)
     }
     showPicker.value = false
+    emit('pickerStateChange', true)
 }
 
 const closePicker = () => {
     showPicker.value = false
+    emit('pickerStateChange', true)
 }
 
 const handleOpenPicker = () => {
