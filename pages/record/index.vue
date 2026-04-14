@@ -35,7 +35,7 @@
                             <text class="info-value">{{ item.custTel }}</text>
                         </view>
                         <view class="info-row">
-                            <text class="info-label">客户电话2：</text>
+                            <text class="info-label">备用电话：</text>
                             <text class="info-value">{{ item.custTel2 }}</text>
                         </view>
                         <view class="info-row">

@@ -32,8 +32,8 @@
                             maxlength="11" />
                     </view>
                     <view class="form-item">
-                        <text class="label">客户电话2</text>
-                        <input class="input" v-model="formData.custTel2" type="tel" placeholder="请输入客户电话"
+                        <text class="label">备用电话</text>
+                        <input class="input" v-model="formData.custTel2" type="tel" placeholder="请输入备用电话"
                             maxlength="11" />
                     </view>
 
@@ -134,7 +134,7 @@ const visitType = ref('channel') // natural: 自然来访, channel: 渠道来访
 const formData = ref({
     custName: '', // 客户姓名
     custTel: '', // 客户电话1
-    custTel2: '', // 客户电话2
+    custTel2: '', // 备用电话
     visitNum: 1, // 到访人数
     visitTypeId: '', // 到访方式ID
     visitTypeName: '', // 到访方式name
@@ -163,7 +163,7 @@ const isSubmitting = ref(false)
 const isFormValid = computed(() => {
     // 客户电话验证
     const isPhoneValid = /^1[3-9]\d{9}$/.test(formData.value.custTel)
-    // 客户电话2验证（如果填写了）
+    // 备用电话验证（如果填写了）
     const isPhone2Valid = !formData.value.custTel2 || /^1[3-9]\d{9}$/.test(formData.value.custTel2)
     const baseValid =
         formData.value.custName &&
@@ -188,7 +188,7 @@ const resetForm = () => {
     formData.value = {
         custName: '', // 客户姓名
         custTel: '', // 客户电话
-        custTel2: '', // 客户电话2
+        custTel2: '', // 备用电话
         visitNum: 1, // 到访人数
         visitTypeId: '', // 到访方式ID
         visitTypeName: '', // 到访方式name

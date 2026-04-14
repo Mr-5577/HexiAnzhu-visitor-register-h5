@@ -205,6 +205,13 @@ const destroySortable = () => {
 
 // 保存排序
 const saveSort = async () => {
+    if (listData.value.length === 0) {
+        uni.showToast({
+            title: '暂无数据',
+            icon: 'none'
+        })
+        return
+    }
     try {
         let params = []
         listData.value.forEach((item, index) => {

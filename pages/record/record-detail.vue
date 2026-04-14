@@ -30,7 +30,7 @@
                     <text class="value">{{ detailData.custTel || '-' }}</text>
                 </view>
                 <view class="info-row">
-                    <text class="label">客户电话2：</text>
+                    <text class="label">备用电话：</text>
                     <text class="value">{{ detailData.custTel2 || '-' }}</text>
                 </view>
                 <template v-if="detailData.visitTypeId == 2 || detailData.visitTypeId == 3">

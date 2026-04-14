@@ -15,7 +15,7 @@
                     <text class="detail-value">{{ detailData.custTel || '-' }}</text>
                 </view>
                 <view class="detail-row">
-                    <text class="detail-label">客户电话2：</text>
+                    <text class="detail-label">备用电话：</text>
                     <text class="detail-value">{{ detailData.custTel2 || '-' }}</text>
                 </view>
                 <view class="detail-row">
