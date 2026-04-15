@@ -19,8 +19,9 @@
                 <text class="tip-title">扫码签到</text>
                 <text class="tip-title marginLeft">1. 选择项目生成二维码</text>
                 <text class="tip-title marginLeft">2. 使用企业微信扫码签到</text>
+                <text class="tip-title marginLeft">3. 长按可保存二维码图片</text>
             </view>
-            <view class="saveQrCode" @click="saveQRCode">保存二维码</view>
+            <!-- <view class="saveQrCode" @click="saveQRCode">保存二维码</view> -->
         </view>
     </view>
 </template>

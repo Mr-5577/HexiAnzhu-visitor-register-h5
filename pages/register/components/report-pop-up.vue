@@ -252,7 +252,6 @@ defineExpose({
 
         .search-row {
             display: flex;
-            gap: 20rpx;
             margin-bottom: 20rpx;
             width: 100%;
             align-items: center;
@@ -269,7 +268,10 @@ defineExpose({
             align-items: center;
             gap: 16rpx;
             width: 50%;
-
+            margin-right: 20rpx;
+            &:last-child {
+                margin-right: 0;
+            }
             &.flex-1 {
                 flex: 1;
             }
@@ -316,8 +318,9 @@ defineExpose({
 
         .search-buttons {
             display: flex;
-            gap: 20rpx;
-
+            .reset-btn {
+                margin-right: 20rpx;
+            }
             .reset-btn,
             .search-btn {
                 width: 120rpx;
@@ -358,7 +361,6 @@ defineExpose({
     .report-list {
         display: flex;
         flex-direction: column;
-        gap: 20rpx;
     }
 
     .report-item {
@@ -367,7 +369,7 @@ defineExpose({
         padding: 12rpx 24rpx;
         border: 2rpx solid #f0f0f0;
         transition: all 0.3s ease;
-
+        margin-bottom: 20rpx;
         &.report-item-active {
             border-color: #007AFF;
             background-color: #f0f8ff;

@@ -10,7 +10,7 @@
 
         <!-- 使用 uni-popup 替代原有的弹窗 -->
         <uni-popup class="popup-dialog" ref="popupRef" type="bottom" background-color="#fff"
-            border-radius="10px 10px 0 0" :is-mask-click="maskClosable" :style="{ zIndex: 1000 }"
+            border-radius="10px 10px 0 0" :is-mask-click="maskClosable" :style="{ zIndex: 100001 }"
             @maskClick="maskCloseHandler">
             <view class="custom-picker-container-bottom">
                 <view class="picker-header">
@@ -157,7 +157,7 @@ defineExpose({ openPicker })
     border-top-right-radius: 20rpx;
     display: flex;
     flex-direction: column;
-    min-height: 400rpx;
+    min-height: 600rpx;
     max-height: 60vh;
     /* 添加底部安全区域 */
     padding-bottom: constant(safe-area-inset-bottom);
@@ -246,5 +246,26 @@ defineExpose({ openPicker })
 .empty-state .empty-text {
     font-size: 28rpx;
     color: #999;
+}
+/* 添加全局样式，确保弹窗在最顶层 */
+.custom-picker-mask,
+.custom-picker-container-bottom {
+    z-index: 100001 !important;
+}
+
+:deep(.uni-popup) {
+    z-index: 100001 !important;
+}
+
+:deep(.uni-popup__mask) {
+    z-index: 100000 !important;
+}
+
+:deep(.uni-popup__wrapper) {
+    z-index: 100001 !important;
+}
+
+:deep(.uni-popup__wrapper-box) {
+    z-index: 100001 !important;
 }
 </style>

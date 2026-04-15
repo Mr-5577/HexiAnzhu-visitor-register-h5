@@ -19,7 +19,7 @@
                             <text class="btn-arrow">›</text>
                         </view>
                     </view>
-                    <!-- 项目  -->
+                    <!-- 项目 -->
                     <view class="form-item">
                         <text class="label required">项目</text>
                         <CustomPicker v-model="formData.visitProjId" :options="projectList" label-key="name"
@@ -72,6 +72,10 @@
                             <input class="input" v-model="formData.reportCom" disabled placeholder="渠道公司" />
                         </view>
 
+                        <view class="form-item">
+                            <text class="label">渠道门店</text>
+                            <input class="input" v-model="formData.reportComArea" placeholder="请输入门店" />
+                        </view>
                         <view class="form-item">
                             <text class="label required">带访人</text>
                             <input class="input" v-model="formData.bringMan" placeholder="请输入带访人" />
@@ -132,6 +136,7 @@ const formData = ref({
     visitTypeName: '', // 到访方式name
     bringMan: '',      // 带访人
     bringTel: '', // 带访电话
+    reportComArea: '', // 报备公司门店
     reportCom: '', // 报备公司
     reportId: '', // 报备ID
     reporter: '',      // 报备人
@@ -221,10 +226,10 @@ const onVisitMethodChange = (value, selectedItem) => {
     formData.value.visitTypeName = selectedItem.name
 
     // 清除报备人相关信息
-    formData.value.reportId = ''
-    formData.value.reportCom = ''
-    formData.value.reporter = ''
-    formData.value.reportTime = ''
+    // formData.value.reportId = ''
+    // formData.value.reportCom = ''
+    // formData.value.reporter = ''
+    // formData.value.reportTime = ''
 }
 
 // 报备时间选择
@@ -292,6 +297,7 @@ const handleSubmit = async () => {
         visitNum: formData.value.visitNum, // 到访人数
         visitTypeId: formData.value.visitTypeId, // 到访方式ID
         reportId: formData.value.reportId, // 报备ID
+        reportComArea: formData.value.reportComArea, // 报备公司门店
         bringMan: formData.value.bringMan, // 带访人
         bringTel: formData.value.bringTel, // 带访电话
         visitTime: dayjs().format('YYYY-MM-DD HH:mm:ss'), // 到访时间
@@ -532,7 +538,6 @@ page {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 20rpx;
 }
 
 /* 表单卡片 */
@@ -540,6 +545,7 @@ page {
     background-color: #fff;
     border-radius: 16rpx;
     padding: 24rpx;
+    margin-bottom: 20rpx;
 
     .form-item:not(:last-child) {
         border-bottom: 1rpx solid #eee;

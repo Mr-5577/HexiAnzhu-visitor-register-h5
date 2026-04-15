@@ -555,7 +555,6 @@ page {
     .list-container {
         display: flex;
         flex-direction: column;
-        gap: 20rpx;
     }
 
     .record-item {
@@ -567,6 +566,7 @@ page {
         display: flex;
         align-items: center;
         flex-wrap: nowrap;
+        margin-bottom: 20rpx;
 
         .checkbox-wrapper {
             flex-shrink: 0;
@@ -640,11 +640,11 @@ page {
     .select-all {
         display: flex;
         align-items: center;
-        gap: 16rpx;
 
         .select-all-text {
             font-size: 28rpx;
             color: #333;
+            margin-left: 16rpx;
         }
     }
 
