@@ -13,7 +13,13 @@
         <scroll-view class="form-scroll" scroll-y>
             <view class="form-container">
                 <view class="form-card">
-                    <!-- 项目 - 使用 CustomPicker 组件 -->
+                    <view class="form-report" v-show="visitType === 'channel'">
+                        <view class="quick-report-btn" @click="openReportPopup">
+                            <text class="btn-text">选择报备</text>
+                            <text class="btn-arrow">›</text>
+                        </view>
+                    </view>
+                    <!-- 项目  -->
                     <view class="form-item">
                         <text class="label required">项目</text>
                         <CustomPicker v-model="formData.visitProjId" :options="projectList" label-key="name"
@@ -48,25 +54,19 @@
                     </view>
                 </view>
                 <view class="form-card">
-                    <!-- 到访方式 - 使用 CustomPicker 组件 -->
                     <view class="form-item">
                         <text class="label required">到访方式</text>
-                        <CustomPicker v-model="formData.visitTypeId" :options="visitMethodList"
-                            :disabled="visitType === 'natural'" label-key="name" value-key="id" placeholder="请选择到访方式"
-                            @change="onVisitMethodChange" />
+                        <CustomPicker v-model="formData.visitTypeId" :options="filteredVisitMethodList" label-key="name"
+                            value-key="id" placeholder="请选择到访方式" @change="onVisitMethodChange" />
+                    </view>
+                    <view class="form-item">
+                        <text class="label required">知晓途径</text>
+                        <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="name"
+                            value-key="id" placeholder="请选择知晓途径" @change="onKnowWayChange" />
                     </view>
 
                     <!-- 根据到访方式显示不同字段 -->
-                    <template
-                        v-if="visitType === 'channel' && (formData.visitTypeId == 2 || formData.visitTypeId == 3)">
-                        <!-- 报备按钮 - 只有选择 内渠、外渠分销才展示 -->
-                        <view class="form-report">
-                            <view class="quick-report-btn" @click="openReportPopup">
-                                <text class="btn-text">选择报备</text>
-                                <text class="btn-arrow">›</text>
-                            </view>
-                        </view>
-
+                    <template v-if="visitType === 'channel'">
                         <view class="form-item">
                             <text class="label">渠道公司</text>
                             <input class="input" v-model="formData.reportCom" disabled placeholder="渠道公司" />
@@ -97,23 +97,15 @@
                             </picker>
                         </view>
                     </template>
-
-                    <!-- 知晓途径 - 使用 CustomPicker 组件 -->
-                    <view class="form-item">
-                        <text class="label required">知晓途径</text>
-                        <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="name"
-                            value-key="id" placeholder="请选择知晓途径" @change="onKnowWayChange" />
-                    </view>
-
                 </view>
             </view>
-            <!-- 底部确认按钮 -->
-            <view class="bottom-btn">
-                <button class="confirm-btn" :disabled="!isFormValid || isSubmitting" @click="handleSubmit">
-                    确认登记
-                </button>
-            </view>
         </scroll-view>
+        <!-- 底部确认按钮 -->
+        <view class="bottom-btn">
+            <button class="confirm-btn" :disabled="isSubmitting" @click="handleSubmit">
+                确认登记
+            </button>
+        </view>
         <!-- 报备弹窗 -->
         <ReportPopup ref="reportPopupRef" :projectId="formData.visitProjId" @reportSelected="onReportSelected" />
     </view>
@@ -159,50 +151,34 @@ const projectList = ref([])
 // 提交锁
 const isSubmitting = ref(false)
 
-// 表单验证
-const isFormValid = computed(() => {
-    // 客户电话验证
-    const isPhoneValid = /^1[3-9]\d{9}$/.test(formData.value.custTel)
-    // 备用电话验证（如果填写了）
-    const isPhone2Valid = !formData.value.custTel2 || /^1[3-9]\d{9}$/.test(formData.value.custTel2)
-    const baseValid =
-        formData.value.custName &&
-        isPhoneValid &&
-        isPhone2Valid &&
-        formData.value.visitNum > 0 &&
-        formData.value.visitTypeId &&
-        formData.value.visitProjId &&
-        formData.value.knowWayId
-
-    if (visitType.value === 'channel' && (formData.value.visitTypeId == 2 || formData.value.visitTypeId == 3)) {
-        const isBringPhoneValid = /^1[3-9]\d{9}$/.test(formData.value.bringTel)
-        return baseValid &&
-            formData.value.bringMan &&
-            isBringPhoneValid
-    }
-    return baseValid
+// 根据来访类型过滤到访方式选项
+const filteredVisitMethodList = computed(() => {
+    // 自然来访,0自然到访、5电转访、8工程抵款、0棚改
+    const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
+    // 渠道来访,1老带新,2内渠,3外渠分销,4自拓邀约,6内部员工及推荐,6全民营销
+    const CHANNEL_VISIT_IDS = ['1', '2', '3', '4', '6', '7']
+    const filterIds = visitType.value === 'natural' ? NATURAL_VISIT_IDS : CHANNEL_VISIT_IDS
+    return visitMethodList.value.filter(item => filterIds.includes(item.id))
 })
 
 // 初始化表单数据
 const resetForm = () => {
-    formData.value = {
-        custName: '', // 客户姓名
-        custTel: '', // 客户电话
-        custTel2: '', // 备用电话
-        visitNum: 1, // 到访人数
-        visitTypeId: '', // 到访方式ID
-        visitTypeName: '', // 到访方式name
-        bringMan: '',      // 带访人
-        bringTel: '', // 带访电话
-        reportCom: '', // 报备公司
-        reportId: '', // 报备ID
-        reporter: '',      // 报备人
-        reportTime: '',    // 报备时间
-        knowWayId: '', // 知晓途径
-        knowWayName: '', // 知晓途径name
-        visitProjId: '', // 项目ID
-        visitProjName: '' // 项目
-    }
+    formData.value.custName = '' // 客户姓名
+    formData.value.custTel = '' // 客户电话
+    formData.value.custTel2 = '' // 备用电话
+    formData.value.visitNum = 1 // 到访人数
+    formData.value.visitTypeId = '' // 到访方式ID
+    formData.value.visitTypeName = '' // 到访方式name
+    formData.value.bringMan = ''      // 带访人
+    formData.value.bringTel = '' // 带访电话
+    formData.value.reportCom = '' // 报备公司
+    formData.value.reportId = '' // 报备ID
+    formData.value.reporter = ''      // 报备人
+    formData.value.reportTime = ''    // 报备时间
+    formData.value.knowWayId = '' // 知晓途径
+    formData.value.knowWayName = '' // 知晓途径name
+    // formData.value.visitProjId = '' // 项目ID
+    // formData.value.visitProjName = '' // 项目
 }
 
 // 增加人数
@@ -222,19 +198,11 @@ const decreasePeople = () => {
 const switchTab = (type) => {
     visitType.value = type
     resetForm()
-    // 只有一个项目时默认选上
-    if (projectList.value.length > 0 && projectList.value.length === 1) {
-        formData.value.visitProjId = projectList.value[0].id
-        formData.value.visitProjName = projectList.value[0].name
-    }
-    if (type === 'natural') {
-        // 到访方式默认 自然到访
-        const targetData = visitMethodList.value.find(item => item.id === '0')
-        if (targetData) {
-            formData.value.visitTypeId = targetData.id
-            formData.value.visitTypeName = targetData.name
-        }
-    }
+    // 默认选中第一个项目
+    // if (projectList.value.length) {
+    //     formData.value.visitProjId = projectList.value[0].id
+    //     formData.value.visitProjName = projectList.value[0].name
+    // }
 }
 
 // 项目选择变化
@@ -275,12 +243,42 @@ const handleSubmit = async () => {
     if (isSubmitting.value) {
         return
     }
-    if (!isFormValid.value) {
-        uni.showToast({
-            title: '请填写完整信息',
-            icon: 'none'
-        })
+    // 字段校验
+    if (!formData.value.visitProjId) {
+        uni.showToast({ title: '请选择项目', icon: 'none' })
         return
+    }
+    if (!formData.value.custName) {
+        uni.showToast({ title: '请输入客户姓名', icon: 'none' })
+        return
+    }
+    if (!/^1[3-9]\d{9}$/.test(formData.value.custTel)) {
+        uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
+        return
+    }
+    if (formData.value.custTel2 && !/^1[3-9]\d{9}$/.test(formData.value.custTel2)) {
+        uni.showToast({ title: '请输入正确的备用电话', icon: 'none' })
+        return
+    }
+    if (!formData.value.visitTypeId) {
+        uni.showToast({ title: '请选择到访方式', icon: 'none' })
+        return
+    }
+    if (!formData.value.knowWayId) {
+        uni.showToast({ title: '请选择知晓途径', icon: 'none' })
+        return
+    }
+
+    // 渠道来访额外校验
+    if (visitType.value === 'channel') {
+        if (!formData.value.bringMan) {
+            uni.showToast({ title: '请输入带访人', icon: 'none' })
+            return
+        }
+        if (!/^1[3-9]\d{9}$/.test(formData.value.bringTel)) {
+            uni.showToast({ title: '请输入正确的带访人电话', icon: 'none' })
+            return
+        }
     }
 
     isSubmitting.value = true
@@ -433,8 +431,8 @@ const fetchGetProjList = async () => {
                 }
             })
             projectList.value = newData
-            // 只有一个项目时默认选上
-            if (newData.length > 0 && newData.length === 1) {
+            // 默认选上第一个项目
+            if (newData.length > 0) {
                 formData.value.visitProjId = newData[0].id
                 formData.value.visitProjName = newData[0].name
             }
@@ -468,6 +466,7 @@ onHide(() => {
 })
 
 onMounted(() => {
+    console.log(123)
     initFetchData()
 })
 </script>
@@ -553,23 +552,13 @@ page {
     flex-wrap: nowrap;
     justify-content: space-between;
     align-items: center;
-    padding: 16rpx 0;
-}
-
-.flex-column {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-
-    .label {
-        margin-bottom: 12rpx;
-    }
+    // padding: 16rpx 0;
+    height: 80rpx;
 }
 
 .label {
     display: block;
-    font-size: 28rpx;
+    font-size: 30rpx;
     color: #333;
     padding-left: 6rpx;
     box-sizing: border-box;
@@ -590,7 +579,7 @@ page {
 /* 输入框 */
 .input {
     flex: 1;
-    font-size: 28rpx;
+    font-size: 30rpx;
     color: #999;
     display: flex;
     justify-content: flex-end;
@@ -630,10 +619,9 @@ page {
 
 /* 选择器 */
 .report-picker {
-    font-size: 28rpx;
+    font-size: 30rpx;
     color: #999;
     position: relative;
-    padding-right: 20rpx;
     box-sizing: border-box;
 }
 
@@ -694,7 +682,7 @@ page {
     display: flex;
     align-items: center;
     gap: 6rpx;
-    padding: 6rpx 30rpx 8rpx;
+    padding: 8rpx 80rpx 10rpx;
     background: linear-gradient(135deg, #007AFF, #0056b3);
     border-radius: 28rpx;
     transition: all 0.3s ease;

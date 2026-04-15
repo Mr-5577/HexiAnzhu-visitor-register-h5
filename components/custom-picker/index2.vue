@@ -8,11 +8,8 @@
             <view class="picker-arrow">›</view>
         </view>
 
-        <!-- 使用 uni-popup 替代原有的弹窗 -->
-        <uni-popup class="popup-dialog" ref="popupRef" type="bottom" background-color="#fff"
-            border-radius="10px 10px 0 0" :is-mask-click="maskClosable" :style="{ zIndex: 1000 }"
-            @maskClick="maskCloseHandler">
-            <view class="custom-picker-container-bottom">
+        <view v-if="showPicker" class="custom-picker-mask" @click="maskCloseHandler">
+            <view class="custom-picker-container-bottom" @click.stop>
                 <view class="picker-header">
                     <text class="picker-cancel" @click="closePicker">取消</text>
                     <text class="picker-confirm" @click="confirmPicker">确定</text>
@@ -32,7 +29,7 @@
                     </view>
                 </scroll-view>
             </view>
-        </uni-popup>
+        </view>
     </view>
 </template>
 
@@ -52,7 +49,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'change', 'pickerStateChange'])
 
-const popupRef = ref(null)
+const showPicker = ref(false)
 const tempSelectedIndex = ref(0)
 
 const displayValue = computed(() => {
@@ -65,7 +62,7 @@ const openPicker = () => {
     if (props.disabled) return
     const currentIndex = props.options.findIndex(item => item[props.valueKey] == props.modelValue)
     tempSelectedIndex.value = currentIndex !== -1 ? currentIndex : 0
-    popupRef.value?.open()
+    showPicker.value = true
     emit('pickerStateChange', false)
 }
 
@@ -80,11 +77,12 @@ const confirmPicker = () => {
         emit('update:modelValue', newValue)
         emit('change', newValue, selected)
     }
-    closePicker()
+    showPicker.value = false
+    emit('pickerStateChange', true)
 }
 
 const closePicker = () => {
-    popupRef.value?.close()
+    showPicker.value = false
     emit('pickerStateChange', true)
 }
 
@@ -127,7 +125,7 @@ defineExpose({ openPicker })
 }
 
 .picker-value {
-    font-size: 30rpx;
+    font-size: 28rpx;
     color: #999;
 }
 
@@ -145,19 +143,30 @@ defineExpose({ openPicker })
     line-height: 1;
 }
 
-/* uni-popup 内容容器样式 */
-.popup-dialog {
-    /* 确保弹窗层级正确 */
-    z-index: 1000;
+.custom-picker-mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 99999;
 }
 
 .custom-picker-container-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background-color: #fff;
     border-top-left-radius: 20rpx;
     border-top-right-radius: 20rpx;
+    z-index: 100000;
     display: flex;
     flex-direction: column;
+    /* height: 620rpx; */
     min-height: 400rpx;
+    /* 最大高度限制 */
     max-height: 60vh;
     /* 添加底部安全区域 */
     padding-bottom: constant(safe-area-inset-bottom);
@@ -169,6 +178,7 @@ defineExpose({ openPicker })
     justify-content: space-between;
     padding: 20rpx 30rpx;
     border-bottom: 1rpx solid #eee;
+    /* 固定头部，不参与滚动 */
     flex-shrink: 0;
 }
 
@@ -185,6 +195,7 @@ defineExpose({ openPicker })
 }
 
 .picker-scroll {
+    /* 关键：flex: 1 让滚动区域自动占满剩余空间 */
     flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -235,16 +246,16 @@ defineExpose({ openPicker })
     justify-content: center;
     align-items: center;
     padding: 100rpx 0;
-}
 
-.empty-state .empty-image {
-    width: 200rpx;
-    height: 200rpx;
-    margin-bottom: 20rpx;
-}
+    .empty-image {
+        width: 200rpx;
+        height: 200rpx;
+        margin-bottom: 20rpx;
+    }
 
-.empty-state .empty-text {
-    font-size: 28rpx;
-    color: #999;
+    .empty-text {
+        font-size: 28rpx;
+        color: #999;
+    }
 }
 </style>

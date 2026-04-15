@@ -76,7 +76,7 @@
 
     <!-- 重新分配弹窗 -->
     <uni-popup class="reassign-popup" ref="reassignPopupRef" type="bottom" background-color="#fff"
-        border-radius="10px 10px 0 0" :is-mask-click="false">
+        border-radius="10px 10px 0 0" :is-mask-click="false" :style="{ zIndex: 999 }">
         <view class="reassign-contain">
             <view class="popup-top">
                 <text class="popup-title">选择置业顾问</text>
@@ -257,9 +257,7 @@ const confirmReassign = async () => {
 
 // 继续登记,跳转到登记页面
 const continueRegister = () => {
-    uni.switchTab({
-        url: '/pages/register/index'
-    })
+    uni.navigateBack()
 }
 const getRecDetailById = async (id) => {
     try {

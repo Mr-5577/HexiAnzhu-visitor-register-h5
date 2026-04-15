@@ -20,6 +20,7 @@
                 <text class="tip-title marginLeft">1. 选择项目生成二维码</text>
                 <text class="tip-title marginLeft">2. 使用企业微信扫码签到</text>
             </view>
+            <view class="saveQrCode" @click="saveQRCode">保存二维码</view>
         </view>
     </view>
 </template>
@@ -104,7 +105,8 @@ const scheduleAutoRefresh = () => {
 
 // 自动登录页面路径
 // const originUrl = 'http://sysa.hexianzhu.com/pages/login/autoLogin'
-const originUrl = `${config.baseUrlActual}/pages/login/autoLogin`
+// const originUrl = `${config.baseUrlActual}/pages/login/autoLogin`
+const originUrl = `http://192.168.1.24:8099/pages/check-in/index`
 // 签到页面路径
 // const originUrl = `http://sysa.hexianzhu.com/pages/check-in/sginIn`
 // const originUrl = `${config.baseUrlActual}/pages/check-in/sginIn`
@@ -118,9 +120,10 @@ const generateQRCode = async (project) => {
     qrMessage.value = '二维码生成中...'
     qrcodeUrl.value = '' // 清空旧二维码
     try {
-        const { projId } = project
+        const { projId, projName } = project
         // 增加时间戳，二维码只保留半个小时，自动登录页面需要处理是否过期问题
         const timestamp = Date.now()
+        // const timestamp = 1776236118931 // 2026-04-15 14:55:40
         const params = new URLSearchParams({
             toPath: `/pages/check-in/sginIn?projId=${projId}`, // 将要跳转的页面路径，此处为 签到页面路径
             t: timestamp
@@ -130,14 +133,73 @@ const generateQRCode = async (project) => {
         const apiUrl = await QRCode.toDataURL(qrContent, {
             width: 200,
             margin: 2,
-            errorCorrectionLevel: 'M' // 添加纠错级别
+            errorCorrectionLevel: 'M'
         })
-        qrcodeUrl.value = apiUrl
+        // qrcodeUrl.value = apiUrl
+
+        // 使用 Canvas 添加项目名称
+        const finalImage = await addProjectNameToQR(apiUrl, projName)
+        qrcodeUrl.value = finalImage
         qrMessage.value = '' // 清空提示信息
     } catch (error) {
         qrMessage.value = '二维码生成失败！'
         qrcodeUrl.value = ''
     }
+}
+
+// 在二维码下方添加项目名称
+const addProjectNameToQR = (qrBase64, projName) => {
+    return new Promise((resolve, reject) => {
+        // #ifdef H5
+        // H5 端使用 HTML5 Canvas
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const img = new Image()
+        
+        img.onload = () => {
+            // 设置 Canvas 尺寸：二维码 200x200 + 文字区域 + 顶部留白
+            const qrSize = 200
+            const textHeight = 40
+            const topPadding = 30  // 顶部留白
+            const bottomPadding = 20  // 底部留白
+            canvas.width = qrSize
+            canvas.height = qrSize + textHeight + topPadding + bottomPadding
+            
+            // 绘制白色背景
+            ctx.fillStyle = '#ffffff'
+            ctx.fillRect(0, 0, canvas.width, canvas.height)
+            
+            // 绘制二维码（从顶部留白位置开始）
+            ctx.drawImage(img, 0, topPadding, qrSize, qrSize)
+            
+            // 绘制项目名称
+            ctx.fillStyle = '#333333'
+            ctx.font = '20px Arial'
+            ctx.textAlign = 'center'
+            ctx.fillText(projName, canvas.width / 2, topPadding + qrSize + textHeight)
+            
+            // 导出为 base64
+            const finalBase64 = canvas.toDataURL('image/png')
+            resolve(finalBase64)
+        }
+        
+        img.onerror = reject
+        img.src = qrBase64
+        // #endif
+        
+        // #ifndef H5
+        // App/小程序端使用 uni-app Canvas API
+        const ctx = uni.createCanvasContext('qr-canvas', this)
+        const qrSize = 200
+        const textHeight = 40
+        const padding = 20
+        
+        // 这里需要先将 base64 转换为临时图片路径，然后绘制
+        // 由于 uni-app Canvas API 较为复杂，这里简化处理
+        // 实际项目中可能需要使用第三方库或更复杂的 Canvas 操作
+        resolve(qrBase64) // 暂时返回原二维码，后续扩展
+        // #endif
+    })
 }
 
 // 项目切换处理
@@ -163,6 +225,78 @@ const refreshQRCode = async () => {
         uni.hideLoading()
         scheduleAutoRefresh()
     }
+}
+
+// 保存二维码到本地
+const saveQRCode = () => {
+    if (!qrcodeUrl.value) {
+        uni.showToast({
+            title: '二维码未生成',
+            icon: 'none'
+        })
+        return
+    }
+
+    // #ifdef H5
+    // H5 端：下载二维码图片
+    try {
+        const link = document.createElement('a')
+        link.href = qrcodeUrl.value
+        link.download = `qrcode_${currentProject.value?.projName || 'project'}_${Date.now()}.png`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        uni.showToast({
+            title: '下载成功',
+            icon: 'success'
+        })
+    } catch (error) {
+        uni.showToast({
+            title: '下载失败',
+            icon: 'none'
+        })
+    }
+    // #endif
+
+    // #ifndef H5
+    // App、小程序端：保存到相册
+    uni.showLoading({ title: '保存中...' })
+    try {
+        // 获取文件系统管理器
+        const fs = uni.getFileSystemManager()
+        // 生成临时文件路径
+        const tempFilePath = `${wx.env.USER_DATA_PATH}/qrcode_${Date.now()}.png`
+        // 移除 base64 前缀
+        const base64Data = qrcodeUrl.value.replace(/^data:image\/png;base64,/, '')
+        // 写入临时文件
+        fs.writeFileSync(tempFilePath, base64Data, 'base64')
+        // 保存到相册
+        uni.saveImageToPhotosAlbum({
+            filePath: tempFilePath,
+            success: () => {
+                uni.showToast({
+                    title: '保存成功',
+                    icon: 'success'
+                })
+            },
+            fail: (err) => {
+                console.error('保存失败:', err)
+                uni.showToast({
+                    title: '保存失败，请检查相册权限',
+                    icon: 'none'
+                })
+            }
+        })
+    } catch (error) {
+        console.error('保存过程出错:', error)
+        uni.showToast({
+            title: '保存失败',
+            icon: 'none'
+        })
+    } finally {
+        uni.hideLoading()
+    }
+    // #endif
 }
 
 onMounted(async () => {
@@ -222,7 +356,7 @@ page {
 }
 
 .qrcode-card {
-    padding: 40rpx 40rpx;
+    padding: 30rpx 30rpx;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -235,7 +369,7 @@ page {
     width: 400rpx;
     height: 400rpx;
     border-radius: 24rpx;
-    background-color: #fafafa;
+    // background-color: #fafafa;
     box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.1);
 }
 
@@ -273,6 +407,27 @@ page {
 
     .marginLeft {
         margin-left: 40rpx;
+    }
+}
+
+.saveQrCode {
+    width: 400rpx;
+    height: 80rpx;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    font-size: 32rpx;
+    font-weight: 500;
+    border-radius: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 40rpx;
+    box-shadow: 0 8rpx 16rpx rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+
+    &:active {
+        transform: scale(0.96);
+        opacity: 0.9;
     }
 }
 </style>

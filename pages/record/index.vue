@@ -15,7 +15,7 @@
         </view>
 
         <!-- 表单内容 -->
-        <scroll-view class="customer-list" :scroll-y="isPickerOpen">
+        <scroll-view class="customer-list" :scroll-y="isScrollY">
             <view v-if="recordList.length > 0" class="list-container">
                 <view v-for="(item, index) in recordList" :key="index" class="record-item">
                     <!-- 复选框 -->
@@ -106,7 +106,7 @@
 
         <!-- 搜索弹窗组件 -->
         <uni-popup ref="searchPopupRef" type="right" background-color="#fff" border-radius="15rpx 0 0 15rpx"
-            :is-mask-click="false" @maskClick="closeSearch">
+            :is-mask-click="false" @maskClick="closeSearch" :style="{ zIndex: 999 }">
             <view class="search-popup-form">
                 <view class="form-container">
                     <view class="form-item">
@@ -184,9 +184,9 @@ const searchPopupRef = ref(null)
 const showAllocate = ref(false)
 const selectedConsultantId = ref(null)
 
-const isPickerOpen = ref(true)
-const pickerStateChange = (isOpen) => {
-    isPickerOpen.value = isOpen
+const isScrollY = ref(true)
+const pickerStateChange = (flag) => {
+    isScrollY.value = flag
 }
 
 // 是否全选
@@ -559,17 +559,18 @@ page {
     }
 
     .record-item {
+        width: 100%;
         background-color: #fff;
         border-radius: 16rpx;
         padding: 24rpx;
         transition: all 0.3s ease;
         display: flex;
         align-items: center;
-        gap: 20rpx;
+        flex-wrap: nowrap;
 
         .checkbox-wrapper {
             flex-shrink: 0;
-            padding-top: 4rpx;
+            margin-right: 20rpx;
         }
 
         .item-content {
@@ -811,9 +812,9 @@ page {
     .form-container {
         display: flex;
         flex-direction: column;
-        gap: 40rpx;
 
         .form-item {
+            margin-bottom: 40rpx;
             .item-label {
                 font-size: 28rpx;
                 color: #666;
