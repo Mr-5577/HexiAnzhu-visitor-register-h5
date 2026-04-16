@@ -8,8 +8,10 @@
             <view class="picker-arrow">›</view>
         </view>
 
-        <!-- 使用 uni-popup 替代原有的弹窗 -->
-        <uni-popup class="popup-dialog" ref="popupRef" type="bottom" background-color="#fff"
+    </view>
+    <!-- Teleport 把组件放在body上 -->
+    <Teleport to="body">
+        <uni-popup class="custom-picker-popup-dialog" ref="popupRef" type="bottom" background-color="#fff"
             border-radius="10px 10px 0 0" :is-mask-click="maskClosable" :style="{ zIndex: 100001 }"
             @maskClick="maskCloseHandler">
             <view class="custom-picker-container-bottom">
@@ -33,7 +35,7 @@
                 </scroll-view>
             </view>
         </uni-popup>
-    </view>
+    </Teleport>
 </template>
 
 <script setup>
@@ -102,7 +104,7 @@ const maskCloseHandler = () => {
 defineExpose({ openPicker })
 </script>
 
-<style scoped>
+<style lang="scss">
 .custom-picker-container {
     width: 100%;
 }
@@ -146,9 +148,9 @@ defineExpose({ openPicker })
 }
 
 /* uni-popup 内容容器样式 */
-.popup-dialog {
+.custom-picker-popup-dialog {
     /* 确保弹窗层级正确 */
-    z-index: 1000;
+    z-index: 100001 !important;
 }
 
 .custom-picker-container-bottom {
@@ -247,6 +249,7 @@ defineExpose({ openPicker })
     font-size: 28rpx;
     color: #999;
 }
+
 /* 添加全局样式，确保弹窗在最顶层 */
 .custom-picker-mask,
 .custom-picker-container-bottom {
