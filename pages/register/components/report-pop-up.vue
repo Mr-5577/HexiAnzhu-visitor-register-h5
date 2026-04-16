@@ -318,9 +318,6 @@ defineExpose({
 
         .search-buttons {
             display: flex;
-            .reset-btn {
-                margin-right: 20rpx;
-            }
             .reset-btn,
             .search-btn {
                 width: 120rpx;
@@ -341,6 +338,7 @@ defineExpose({
                 background-color: #fff;
                 color: #666;
                 border: 1rpx solid #e0e0e0;
+                margin-right: 20rpx;
             }
 
             .search-btn {

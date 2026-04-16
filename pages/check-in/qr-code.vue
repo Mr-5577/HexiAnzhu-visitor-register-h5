@@ -45,7 +45,7 @@ const currentProject = computed(() => {
 // 获取项目数据
 const fetchGetProjList = async () => {
     try {
-        const res = await visitorRegisterApi.getProjList({ isAll: true })
+        const res = await visitorRegisterApi.getProjList({ isAll: false })
         if (res.code === 200) {
             const data = res.data || []
             const newData = data.map((item) => {
@@ -60,6 +60,8 @@ const fetchGetProjList = async () => {
             if (newData.length > 0) {
                 selectedProjectId.value = newData[0].id
                 await refreshQRCode()
+            } else {
+                qrMessage.value = '请先选择项目...'
             }
         }
     } catch (error) {
@@ -106,8 +108,8 @@ const scheduleAutoRefresh = () => {
 
 // 自动登录页面路径
 // const originUrl = 'http://sysa.hexianzhu.com/pages/login/autoLogin'
-// const originUrl = `${config.baseUrlActual}/pages/login/autoLogin`
-const originUrl = `http://192.168.1.24:8099/pages/check-in/index`
+const originUrl = `${config.baseUrlActual}/pages/login/autoLogin`
+// const originUrl = `http://192.168.1.24:8099/pages/check-in/index`
 // 签到页面路径
 // const originUrl = `http://sysa.hexianzhu.com/pages/check-in/sginIn`
 // const originUrl = `${config.baseUrlActual}/pages/check-in/sginIn`
@@ -224,7 +226,8 @@ const refreshQRCode = async () => {
         qrMessage.value = '二维码生成失败'
     } finally {
         uni.hideLoading()
-        scheduleAutoRefresh()
+        // 自动刷新二维码
+        // scheduleAutoRefresh()
     }
 }
 
@@ -364,13 +367,14 @@ page {
     width: 100%;
     max-width: 500rpx;
     transition: transform 0.2s;
+    background-color: #fff;
 }
 
 .qrcode-image {
     width: 400rpx;
     height: 400rpx;
     border-radius: 24rpx;
-    // background-color: #fafafa;
+    background-color: #fff;
     box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.1);
 }
 

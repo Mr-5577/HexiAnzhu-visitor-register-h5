@@ -11,97 +11,93 @@
         </view>
         <!-- 表单内容 -->
         <scroll-view class="form-scroll" scroll-y>
-            <view class="form-container">
-                <view class="form-card">
-                    <view class="form-report" v-show="visitType === 'channel'">
-                        <view class="quick-report-btn" @click="openReportPopup">
-                            <text class="btn-text">选择报备</text>
-                            <text class="btn-arrow">›</text>
-                        </view>
-                    </view>
-                    <!-- 项目 -->
-                    <view class="form-item">
-                        <text class="label required">项目</text>
-                        <CustomPicker v-model="formData.visitProjId" :options="projectList" label-key="name"
-                            value-key="id" placeholder="请选择项目" @change="onProjectChange" />
-                    </view>
-                    <!-- 客户姓名 -->
-                    <view class="form-item">
-                        <text class="label required">客户姓名</text>
-                        <input class="input" v-model="formData.custName" placeholder="请输入客户姓名" maxlength="20" />
-                    </view>
-
-                    <!-- 客户电话 -->
-                    <view class="form-item">
-                        <text class="label required">客户电话</text>
-                        <input class="input" v-model="formData.custTel" type="tel" placeholder="请输入客户电话"
-                            maxlength="11" />
-                    </view>
-                    <view class="form-item">
-                        <text class="label">备用电话</text>
-                        <input class="input" v-model="formData.custTel2" type="tel" placeholder="请输入备用电话"
-                            maxlength="11" />
-                    </view>
-
-                    <!-- 到访人数 -->
-                    <view class="form-item ">
-                        <text class="label required">到访人数</text>
-                        <view class="number-input">
-                            <view class="number-btn" @click="decreasePeople">-</view>
-                            <input class="number-value" v-model="formData.visitNum" type="number" disabled />
-                            <view class="number-btn" @click="increasePeople">+</view>
-                        </view>
+            <view class="form-card">
+                <view class="form-report" v-show="visitType === 'channel'">
+                    <view class="quick-report-btn" @click="openReportPopup">
+                        <text class="btn-text">选择报备</text>
+                        <text class="btn-arrow">›</text>
                     </view>
                 </view>
-                <view class="form-card">
-                    <view class="form-item">
-                        <text class="label required">到访方式</text>
-                        <CustomPicker v-model="formData.visitTypeId" :options="filteredVisitMethodList" label-key="name"
-                            value-key="id" placeholder="请选择到访方式" @change="onVisitMethodChange" />
-                    </view>
-                    <view class="form-item">
-                        <text class="label required">知晓途径</text>
-                        <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="name"
-                            value-key="id" placeholder="请选择知晓途径" @change="onKnowWayChange" />
-                    </view>
-
-                    <!-- 根据到访方式显示不同字段 -->
-                    <template v-if="visitType === 'channel'">
-                        <view class="form-item">
-                            <text class="label">渠道公司</text>
-                            <input class="input" v-model="formData.reportCom" disabled placeholder="渠道公司" />
-                        </view>
-
-                        <view class="form-item">
-                            <text class="label">渠道门店</text>
-                            <input class="input" v-model="formData.reportComArea" placeholder="请输入门店" />
-                        </view>
-                        <view class="form-item">
-                            <text class="label required">带访人</text>
-                            <input class="input" v-model="formData.bringMan" placeholder="请输入带访人" />
-                        </view>
-
-                        <view class="form-item">
-                            <text class="label required">带访人电话</text>
-                            <input class="input" v-model="formData.bringTel" type="tel" maxlength="11"
-                                placeholder="请输入带访电话" />
-                        </view>
-
-                        <view class="form-item">
-                            <text class="label">报备人</text>
-                            <input class="input" v-model="formData.reporter" disabled placeholder="报备人" />
-                        </view>
-
-                        <view class="form-item">
-                            <text class="label">报备时间</text>
-                            <picker mode="date" :value="formData.reportTime" disabled @change="onReportTimeChange">
-                                <view class="report-picker">
-                                    {{ formData.reportTime || '报备时间' }}
-                                </view>
-                            </picker>
-                        </view>
-                    </template>
+                <!-- 项目 -->
+                <view class="form-item">
+                    <text class="label required">项目</text>
+                    <CustomPicker v-model="formData.visitProjId" :options="projectList" label-key="name" value-key="id"
+                        placeholder="请选择项目" @change="onProjectChange" />
                 </view>
+                <!-- 客户姓名 -->
+                <view class="form-item">
+                    <text class="label required">客户姓名</text>
+                    <input class="input" v-model="formData.custName" placeholder="请输入客户姓名" maxlength="20" />
+                </view>
+
+                <!-- 客户电话 -->
+                <view class="form-item">
+                    <text class="label required">客户电话</text>
+                    <input class="input" v-model="formData.custTel" type="tel" placeholder="请输入客户电话" maxlength="11" />
+                </view>
+                <view class="form-item">
+                    <text class="label">备用电话</text>
+                    <input class="input" v-model="formData.custTel2" type="tel" placeholder="请输入备用电话" maxlength="11" />
+                </view>
+
+                <!-- 到访人数 -->
+                <view class="form-item ">
+                    <text class="label required">到访人数</text>
+                    <view class="number-input">
+                        <view class="number-btn" @click="decreasePeople">-</view>
+                        <input class="number-value" v-model="formData.visitNum" type="number" disabled />
+                        <view class="number-btn" @click="increasePeople">+</view>
+                    </view>
+                </view>
+            </view>
+            <view class="form-card">
+                <view class="form-item">
+                    <text class="label required">到访方式</text>
+                    <CustomPicker v-model="formData.visitTypeId" :options="filteredVisitMethodList" label-key="name"
+                        value-key="id" placeholder="请选择到访方式" @change="onVisitMethodChange" />
+                </view>
+                <view class="form-item">
+                    <text class="label required">知晓途径</text>
+                    <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="name" value-key="id"
+                        placeholder="请选择知晓途径" @change="onKnowWayChange" />
+                </view>
+
+                <!-- 根据到访方式显示不同字段 -->
+                <template v-if="visitType === 'channel'">
+                    <view class="form-item">
+                        <text class="label">渠道公司</text>
+                        <input class="input" v-model="formData.reportCom" disabled placeholder="渠道公司" />
+                    </view>
+
+                    <view class="form-item">
+                        <text class="label">渠道门店</text>
+                        <input class="input" v-model="formData.reportComArea" placeholder="请输入门店" />
+                    </view>
+                    <view class="form-item">
+                        <text class="label required">带访人</text>
+                        <input class="input" v-model="formData.bringMan" placeholder="请输入带访人" />
+                    </view>
+
+                    <view class="form-item">
+                        <text class="label required">带访人电话</text>
+                        <input class="input" v-model="formData.bringTel" type="tel" maxlength="11"
+                            placeholder="请输入带访电话" />
+                    </view>
+
+                    <view class="form-item">
+                        <text class="label">报备人</text>
+                        <input class="input" v-model="formData.reporter" disabled placeholder="报备人" />
+                    </view>
+
+                    <view class="form-item">
+                        <text class="label">报备时间</text>
+                        <picker mode="date" :value="formData.reportTime" disabled @change="onReportTimeChange">
+                            <view class="report-picker">
+                                {{ formData.reportTime || '报备时间' }}
+                            </view>
+                        </picker>
+                    </view>
+                </template>
             </view>
         </scroll-view>
         <!-- 底部确认按钮 -->
@@ -472,7 +468,6 @@ onHide(() => {
 })
 
 onMounted(() => {
-    console.log(123)
     initFetchData()
 })
 </script>
@@ -488,17 +483,16 @@ page {
     display: flex;
     flex-direction: column;
     background-color: #f5f5f5;
-    overflow: hidden;
 }
 
 /* 顶部Tab样式 */
 .visit-type-tab {
     display: flex;
+    justify-content: space-between;
     background-color: #fff;
     padding: 20rpx 0;
     border-bottom: 1rpx solid #eee;
     flex-shrink: 0;
-    z-index: 10;
 }
 
 .tab-item {
@@ -530,14 +524,7 @@ page {
 .form-scroll {
     flex: 1;
     overflow-y: auto;
-}
-
-/* 表单容器 */
-.form-container {
-    padding: 20rpx 30rpx;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
+    padding: 20rpx 20rpx;
 }
 
 /* 表单卡片 */
@@ -706,14 +693,13 @@ page {
 
 // 底部按钮
 .bottom-btn {
-    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 20rpx 30rpx;
-    padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
     box-sizing: border-box;
     background-color: transparent;
+    flex-shrink: 0;
 }
 
 .confirm-btn {
@@ -730,25 +716,5 @@ page {
     justify-content: center;
     box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.3);
     transition: all 0.3s ease;
-
-    &::after {
-        border: none;
-    }
-
-    &:active {
-        transform: scale(0.98);
-        opacity: 0.9;
-    }
-}
-
-.confirm-btn[disabled] {
-    background: #e0e0e0;
-    color: #999;
-    box-shadow: none;
-    transform: none;
-
-    &:active {
-        transform: none;
-    }
 }
 </style>
