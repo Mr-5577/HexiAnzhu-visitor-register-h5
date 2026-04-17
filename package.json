@@ -9,7 +9,6 @@
   "dependencies": {
     "@dcloudio/uni-ui": "^1.5.12",
     "dayjs": "^1.11.7",
-    "echarts": "^6.0.0",
     "qrcode": "^1.5.4",
     "sortablejs": "^1.15.7",
     "uuid": "^13.0.0"
