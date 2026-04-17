@@ -24,7 +24,6 @@
                             <text v-if="selectedIds.includes(item.id)" class="checkmark">✓</text>
                         </view>
                     </view>
-
                     <!-- 内容区域 -->
                     <view class="item-content" @click="viewDetail(item)">
                         <view class="info-row">
@@ -37,7 +36,7 @@
                         </view>
                         <view class="info-row">
                             <text class="info-label">备用电话：</text>
-                            <text class="info-value">{{ item.custTel2 }}</text>
+                            <text class="info-value">{{ item.custTel2 || '-' }}</text>
                         </view>
                         <view class="info-row">
                             <text class="info-label">到访方式：</text>
@@ -50,6 +49,15 @@
                         <view class="info-row">
                             <text class="info-label">来访时间：</text>
                             <text class="info-value">{{ item.visitTime }}</text>
+                        </view>
+                        <!-- 操作按钮 -->
+                        <view class="item-actions" @click.stop>
+                            <view class="action-btn detail-btn" @click="viewDetail(item)">
+                                <text>详情</text>
+                            </view>
+                            <view class="action-btn edit-btn" @click="handleEdit(item)">
+                                <text>修改</text>
+                            </view>
                         </view>
                     </view>
                 </view>
@@ -144,12 +152,11 @@
 </template>
 
 <script setup>
-import { onShow, onHide } from '@dcloudio/uni-app'
+import { onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
 import CustomPicker from '@/components/custom-picker/index.vue'
-
 // 查询表单
 const searchForm = ref({
     visitProjId: '',
@@ -258,7 +265,12 @@ const viewDetail = (item) => {
         url: `/pages/record/record-detail?id=${item?.id}`
     })
 }
-
+// 编辑
+const handleEdit = (item) => {
+    uni.navigateTo({
+        url: `/pages/record/record-edit?id=${item?.id}`
+    })
+}
 // 显示分配弹窗
 const showAllocateDialog = () => {
     if (selectedIds.value.length === 0) return
@@ -340,7 +352,7 @@ const handleSearch = async () => {
 // 获取来访方式显示文本
 const getTextRect = (val) => {
     const target = visitMethodList.value.find((item) => item.id == val)
-    return target?.name || ''
+    return target?.name || '-'
 }
 
 // 获取置业顾问显示文本
@@ -462,6 +474,10 @@ const resetData = () => {
 
 // 页面显示时加载数据
 onShow(async () => {
+    uni.$off('refreshRecordList')
+    uni.$on('refreshRecordList', () => {
+        getRecordList()
+    })
     // await fetchGetProjList()
     // await fetchGetVisitType()
     // await fetchGetSalerList()
@@ -470,6 +486,7 @@ onShow(async () => {
 onHide(() => {
     // resetData()
 })
+onUnload(() => uni.$off('refreshRecordList'))
 onMounted(async () => {
     await fetchGetProjList()
     await fetchGetVisitType()
@@ -589,13 +606,43 @@ page {
 
             .info-label {
                 color: #999;
-                width: 156rpx;
                 flex-shrink: 0;
             }
 
             .info-value {
                 color: #666;
                 flex: 1;
+            }
+        }
+
+        .item-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 16rpx;
+            padding-top: 16rpx;
+            border-top: 1rpx solid #f5f5f5;
+
+            .action-btn {
+                width: 160rpx;
+                height: 60rpx;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border-radius: 32rpx;
+                font-size: 28rpx;
+                text-align: center;
+
+                &.detail-btn {
+                    background-color: #f5f5f5;
+                    color: #666;
+                    border: 1rpx solid #e0e0e0;
+                    margin-right: 20rpx;
+                }
+
+                &.edit-btn {
+                    background-color: #409eff;
+                    color: #fff;
+                }
             }
         }
     }
@@ -815,6 +862,7 @@ page {
 
         .form-item {
             margin-bottom: 40rpx;
+
             .item-label {
                 font-size: 28rpx;
                 color: #666;
