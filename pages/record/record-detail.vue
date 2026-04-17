@@ -33,7 +33,8 @@
                     <text class="label">备用电话：</text>
                     <text class="value">{{ detailData.custTel2 || '-' }}</text>
                 </view>
-                <template v-if="detailData.visitTypeId == 2 || detailData.visitTypeId == 3">
+                <!-- 渠道来访显示 -->
+                <template v-if="visitType === 'channel'">
                     <view class="info-row">
                         <text class="label">带访人：</text>
                         <text class="value">{{ detailData.bringMan || '-' }}</text>
@@ -63,7 +64,6 @@
             <!-- 底部按钮 -->
             <view class="button-group">
                 <button class="back-btn" @click="goBack">返 回</button>
-                <!-- <button class="print-btn" @click="handlePrint">打印确认单</button> -->
             </view>
         </view>
     </view>
@@ -75,20 +75,28 @@ import { ref, computed, onMounted } from 'vue'
 import { transformData } from '@/utils/common.js'
 import { visitorRegisterApi } from '@/common/api.js'
 
+// 自然来访,0自然到访、5电转访、8工程抵款、9棚改
+const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
+// 渠道来访,1老带新,2内渠,3外渠分销,4自拓邀约,6内部员工及推荐,7全民营销
+const CHANNEL_VISIT_IDS = ['1', '2', '3', '4', '6', '7']
+
 // 详情数据
 const detailData = ref({})
+
+// 来访类型，natural: 自然来访, channel: 渠道来访
+const visitType = computed(() => {
+    const visitTypeId = detailData.value.visitTypeId
+    if (visitTypeId === undefined || visitTypeId === null || visitTypeId === '') return 'natural'
+    const strNum = visitTypeId.toString()
+    if (CHANNEL_VISIT_IDS.includes(strNum)) {
+        return 'channel'
+    }
+    return 'natural'
+})
 
 // 返回上一页
 const goBack = () => {
     uni.navigateBack()
-}
-
-// 打印确认单
-const handlePrint = () => {
-    uni.showToast({
-        title: '打印功能开发中',
-        icon: 'none'
-    })
 }
 // 获取项目数据
 const fetchGetProjList = async () => {
@@ -248,8 +256,7 @@ page {
         gap: 30rpx;
         margin-top: 60rpx;
 
-        .back-btn,
-        .print-btn {
+        .back-btn {
             flex: 1;
             height: 80rpx;
             line-height: 80rpx;
@@ -265,11 +272,6 @@ page {
         .back-btn {
             background-color: #f5f5f5;
             color: #666;
-        }
-
-        .print-btn {
-            background: linear-gradient(135deg, #007AFF, #0056b3);
-            color: #fff;
         }
     }
 }

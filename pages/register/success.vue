@@ -29,8 +29,7 @@
                     <text class="detail-value">{{ detailData.visitTypeName || '-' }}</text>
                 </view>
                 <!-- 渠道来访展示一下信息 channel：渠道来访   natural：自然来访 -->
-                <template
-                    v-if="detailData.visitType == 'channel' && (detailData.visitTypeId == 2 || detailData.visitTypeId == 3)">
+                <template v-if="detailData.visitType == 'channel'">
                     <view class="detail-row">
                         <text class="detail-label">带访人：</text>
                         <text class="detail-value">{{ detailData.bringMan || '-' }}</text>
@@ -125,7 +124,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 
 // 多个根节点会警告，禁用属性继承 可以消除警告
 defineOptions({
@@ -255,7 +254,7 @@ const confirmReassign = async () => {
     }
 }
 
-// 继续登记,跳转到登记页面
+// 继续登记，返回到登记页面
 const continueRegister = () => {
     uni.navigateBack()
 }
@@ -300,8 +299,6 @@ onLoad(async (options) => {
             ...detailData.value,
             ...data
         }
-        // 读取后清除，避免下次进入还显示旧数据
-        // uni.removeStorageSync('registerSuccessData')
 
         // 根据选择的项目ID，获取置业顾问列表
         await fetchGetSalerList()
@@ -311,6 +308,11 @@ onLoad(async (options) => {
         detailData.value.id = options.id
         getRecDetailById(options.id)
     }
+})
+// 页面卸载时
+onUnload(() => {
+    // 清除存储的登记成功数据
+    uni.removeStorageSync('registerSuccessData')
 })
 </script>
 

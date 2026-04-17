@@ -8,10 +8,6 @@
                     <CustomPicker v-model="selectedProjectId" :options="projectList" label-key="name" value-key="id"
                         placeholder="请选择项目" :spaceBetween="true" @change="onProjectChange" />
                 </view>
-                <view class="search-buttons">
-                    <!-- <button class="reset-btn" @click="resetSort">重置</button> -->
-                    <!-- <button class="search-btn" @click="handleSearch">查询</button> -->
-                </view>
             </view>
         </view>
         <!-- 营销人员列表 -->
@@ -55,10 +51,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, onActivated, onDeactivated } from 'vue'
 import Sortable from 'sortablejs'
 import { visitorRegisterApi } from '@/common/api.js'
 import CustomPicker from '@/components/custom-picker/index.vue'
+
+defineOptions({ name: "sort" });
 
 // 项目列表
 const projectList = ref([])
@@ -93,20 +91,6 @@ const fetchGetProjList = async () => {
 const onProjectChange = async (value, selectedItem) => {
     selectedProjectId.value = value
     await handleSearch()
-}
-
-// 重置查询
-const resetSort = () => {
-    // 重置项目为默认
-    if (projectList.value.length > 0) {
-        selectedProjectId.value = projectList.value[0].id
-    }
-    handleSearch()
-}
-
-// 查询
-const handleSearch = async () => {
-    await fetchSortList()
 }
 
 // 列表数据
@@ -199,7 +183,6 @@ const destroySortable = () => {
     if (sortableInstance) {
         sortableInstance.destroy()
         sortableInstance = null
-        console.log('SortableJS 已销毁')
     }
 }
 
@@ -249,6 +232,22 @@ onMounted(async () => {
 onUnmounted(() => {
     destroySortable()
 })
+
+// keep-alive 组件激活时调用（切换到该 Tab 时）
+onActivated(async () => {
+    // console.log('sort 组件激活')
+    await fetchSortList()
+    // 等待 DOM 渲染完成后再初始化拖拽
+    nextTick(() => {
+        initSortable()
+    })
+})
+
+// keep-alive 组件停用时调用（离开该 Tab 时）
+onDeactivated(() => {
+    // console.log('sort 组件停用')
+    destroySortable()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -280,12 +279,12 @@ page {
     .search-row {
         display: flex;
         align-items: center;
-        gap: 20rpx;
 
         .selector-label {
             font-size: 28rpx;
             color: #808080;
             flex-shrink: 0; // 防止标签被压缩
+            margin-right: 20rpx;
         }
 
         .search-item {
@@ -295,39 +294,6 @@ page {
             background-color: #ffffff;
             border-radius: 12rpx;
             gap: 16rpx;
-        }
-    }
-
-    .search-buttons {
-        display: flex;
-        gap: 20rpx;
-
-        .reset-btn,
-        .search-btn {
-            width: 140rpx;
-            height: 60rpx;
-            line-height: 60rpx;
-            font-size: 28rpx;
-            border-radius: 12rpx;
-            border: none;
-            padding: 0;
-            margin: 0;
-
-            &::after {
-                border: none;
-                height: 56rpx;
-            }
-        }
-
-        .reset-btn {
-            background-color: #fff;
-            color: #666;
-            border: 1rpx solid #e0e0e0;
-        }
-
-        .search-btn {
-            background: linear-gradient(135deg, #007AFF, #0056b3);
-            color: #fff;
         }
     }
 }

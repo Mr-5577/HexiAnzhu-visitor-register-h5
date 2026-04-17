@@ -28,10 +28,12 @@
 
 <script setup>
 import QRCode from 'qrcode';
-import { ref, computed, onUnmounted, onMounted } from 'vue'
+import { ref, computed, onUnmounted, onMounted, onActivated, onDeactivated } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import config from '@/utils/config.js'
 import CustomPicker from '@/components/custom-picker/index.vue'
+
+defineOptions({ name: "qr-code" });
 
 // 项目列表
 const projectList = ref([])
@@ -310,6 +312,16 @@ onMounted(async () => {
 onUnmounted(() => {
     clearAutoRefresh()
 })
+
+// keep-alive 组件激活时调用（切换到该 Tab 时）
+onActivated(() => {
+    // console.log('qr 组件激活')
+})
+
+// keep-alive 组件停用时调用（离开该 Tab 时）
+onDeactivated(() => {
+    // console.log('qr 组件停用')
+})
 </script>
 
 <style scoped lang="scss">
@@ -337,12 +349,12 @@ page {
     border-radius: 12rpx;
     padding: 20rpx 30rpx;
     margin-bottom: 20rpx;
-    gap: 20rpx;
 
     .selector-label {
         font-size: 28rpx;
         color: #808080;
         flex-shrink: 0; // 防止标签被压缩
+        margin-right: 20rpx;
     }
 }
 

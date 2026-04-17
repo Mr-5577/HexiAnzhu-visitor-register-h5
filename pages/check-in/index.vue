@@ -12,28 +12,29 @@
                 签到列表
             </view>
         </view>
-        <!-- AB位排序 -->
-        <sort v-if="checkInType === 'sort'"></sort>
-        <!-- 签到二维码 -->
-        <qr-code v-if="checkInType === 'qr-code'"></qr-code>
-        <!-- 签到列表 -->
-        <list v-if="checkInType === 'list'"></list>
+        <!-- 动态组件 -->
+        <keep-alive>
+            <component :is="currentComponent" :key="checkInType" />
+        </keep-alive>
     </view>
 </template>
 
 <script setup>
 import { onShow, onHide } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import Sort from './sort.vue';
 import QrCode from './qr-code.vue';
 import List from './list.vue'
 
 const checkInType = ref('sort')
-onShow(() => {
-    // checkInType.value = 'sort'
-})
-onHide(() => {
-    // checkInType.value = ''
+
+const currentComponent = computed(() => {
+    const components = {
+        'sort': Sort, // AB位排序
+        'qr-code': QrCode, // 签到二维码
+        'list': List, // 签到列表
+    }
+    return components[checkInType.value]
 })
 </script>
 

@@ -111,9 +111,9 @@ import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
 
-// 自然来访,0自然到访、5电转访、8工程抵款、0棚改
+// 自然来访,0自然到访、5电转访、8工程抵款、9棚改
 const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
-// 渠道来访,1老带新,2内渠,3外渠分销,4自拓邀约,6内部员工及推荐,6全民营销
+// 渠道来访,1老带新,2内渠,3外渠分销,4自拓邀约,6内部员工及推荐,7全民营销
 const CHANNEL_VISIT_IDS = ['1', '2', '3', '4', '6', '7']
 
 // 表单数据

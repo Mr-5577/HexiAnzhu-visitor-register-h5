@@ -120,6 +120,11 @@ import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
 
+// 自然来访,0自然到访、5电转访、8工程抵款、9棚改
+const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
+// 渠道来访,1老带新,2内渠,3外渠分销,4自拓邀约,6内部员工及推荐,7全民营销
+const CHANNEL_VISIT_IDS = ['1', '2', '3', '4', '6', '7']
+
 // 来访类型
 const visitType = ref('channel') // natural: 自然来访, channel: 渠道来访
 // 表单数据
@@ -154,10 +159,6 @@ const isSubmitting = ref(false)
 
 // 根据来访类型过滤到访方式选项
 const filteredVisitMethodList = computed(() => {
-    // 自然来访,0自然到访、5电转访、8工程抵款、0棚改
-    const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
-    // 渠道来访,1老带新,2内渠,3外渠分销,4自拓邀约,6内部员工及推荐,6全民营销
-    const CHANNEL_VISIT_IDS = ['1', '2', '3', '4', '6', '7']
     const filterIds = visitType.value === 'natural' ? NATURAL_VISIT_IDS : CHANNEL_VISIT_IDS
     return visitMethodList.value.filter(item => filterIds.includes(item.id))
 })
@@ -199,11 +200,6 @@ const decreasePeople = () => {
 const switchTab = (type) => {
     visitType.value = type
     resetForm()
-    // 默认选中第一个项目
-    // if (projectList.value.length) {
-    //     formData.value.visitProjId = projectList.value[0].id
-    //     formData.value.visitProjName = projectList.value[0].name
-    // }
 }
 
 // 项目选择变化
@@ -220,12 +216,6 @@ const onProjectChange = (value, selectedItem) => {
 // 到访方式选择变化
 const onVisitMethodChange = (value, selectedItem) => {
     formData.value.visitTypeName = selectedItem.name
-
-    // 清除报备人相关信息
-    // formData.value.reportId = ''
-    // formData.value.reportCom = ''
-    // formData.value.reporter = ''
-    // formData.value.reportTime = ''
 }
 
 // 报备时间选择

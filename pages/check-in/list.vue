@@ -46,9 +46,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, onActivated, onDeactivated } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import CustomPicker from '@/components/custom-picker/index.vue'
+
+defineOptions({ name: "list" });
 
 // 项目列表
 const projectList = ref([])
@@ -144,6 +146,16 @@ onMounted(async () => {
 onUnmounted(() => {
     selectedProjectId.value = ''
 })
+// keep-alive 组件激活时调用（切换到该 Tab 时）
+onActivated(() => {
+    // console.log('list 组件激活')
+    fetchGetSalerList()
+})
+
+// keep-alive 组件停用时调用（离开该 Tab 时）
+onDeactivated(() => {
+    // console.log('list 组件停用')
+})
 </script>
 
 <style lang="scss" scoped>
@@ -172,12 +184,12 @@ page {
     border-radius: 12rpx;
     padding: 20rpx 30rpx;
     margin-bottom: 20rpx;
-    gap: 20rpx;
 
     .selector-label {
         font-size: 28rpx;
         color: #808080;
         flex-shrink: 0; // 防止标签被压缩
+        margin-right: 20rpx;
     }
 }
 
