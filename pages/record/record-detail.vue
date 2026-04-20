@@ -131,9 +131,13 @@ const fetchGetVisitType = async () => {
     } catch (error) {
     }
 }
-const getDetailById = async (id) => {
+const getDetailById = async (id, projId) => {
+    const params = {
+        projId: projId,
+        id: id,
+    }
     try {
-        const res = await visitorRegisterApi.getVisitHis({ id: id })
+        const res = await visitorRegisterApi.getVisitHis(params)
         if (res.code === 200) {
             const data = res.data || []
             const [firastData] = data
@@ -143,8 +147,9 @@ const getDetailById = async (id) => {
     }
 }
 onLoad(async (options) => {
-    if (options.id) {
-        await getDetailById(options.id)
+    const { id, projId } = options
+    if (id && projId) {
+        await getDetailById(id, projId)
         await fetchGetProjList()
         await fetchGetVisitType()
     }

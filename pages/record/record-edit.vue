@@ -180,6 +180,13 @@ const onKnowWayChange = (value, selectedItem) => {
 const handleBack = () => {
     uni.navigateBack()
 }
+// 判断是否为脱敏电话
+const isDesensitizedTel = (tel) => {
+    if (!tel) return false
+    // 匹配格式：1[3-9][0-9] + 4个* + 4位数字, 例如：138****1234
+    const desensitizedPattern = /^1[3-9]\d\*{4}\d{4}$/
+    return desensitizedPattern.test(tel)
+}
 // 提交表单
 const handleSubmit = async () => {
     console.log('提交表单数据:', detailData.value)
@@ -191,13 +198,19 @@ const handleSubmit = async () => {
         uni.showToast({ title: '请输入客户姓名', icon: 'none' })
         return
     }
-    if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel)) {
-        uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
-        return
+    // 客户电话校验：如果是脱敏电话则跳过校验，否则校验格式
+    if (!isDesensitizedTel(detailData.value.custTel)) {
+        if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel)) {
+            uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
+            return
+        }
     }
-    if (detailData.value.custTel2 && !/^1[3-9]\d{9}$/.test(detailData.value.custTel2)) {
-        uni.showToast({ title: '请输入正确的备用电话', icon: 'none' })
-        return
+    // 备用电话校验：有值且不是脱敏电话时才校验格式
+    if (detailData.value.custTel2 && !isDesensitizedTel(detailData.value.custTel2)) {
+        if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel2)) {
+            uni.showToast({ title: '请输入正确的备用电话', icon: 'none' })
+            return
+        }
     }
     if (!detailData.value.visitTypeId) {
         uni.showToast({ title: '请选择到访方式', icon: 'none' })
@@ -248,8 +261,10 @@ const handleSubmit = async () => {
                 title: '修改成功',
                 icon: 'success'
             })
-            uni.$emit('refreshRecordList')
-            setTimeout(() => uni.navigateBack(), 500)
+            setTimeout(() => {
+                uni.$emit('refreshRecordList')
+                uni.navigateBack()
+            }, 1000)
         } else {
             uni.showToast({
                 title: res.message || '修改失败',
@@ -347,9 +362,13 @@ const fetchGetProjList = async () => {
 const initFetchData = async () => {
     await Promise.all([fetchGetKnowWay(), fetchGetVisitType(), fetchGetProjList()])
 }
-const getDetailById = async (id) => {
+const getDetailById = async (id, projId) => {
+    const params = {
+        projId: projId,
+        id: id,
+    }
     try {
-        const res = await visitorRegisterApi.getVisitHis({ id: id })
+        const res = await visitorRegisterApi.getVisitHis(params)
         if (res.code === 200) {
             const data = res.data || []
             const [firastData] = data
@@ -369,8 +388,9 @@ const getDetailById = async (id) => {
 }
 onLoad(async (options) => {
     console.log(options)
-    if (options.id) {
-        await getDetailById(options.id)
+    const { id, projId } = options
+    if (id && projId) {
+        await getDetailById(id, projId)
         await initFetchData()
     }
 })

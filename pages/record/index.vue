@@ -128,7 +128,8 @@
                             @change="onTempDateChange">
                             <view class="picker">
                                 {{ tempSearchForm.visitDate || '来访日期' }}
-                                <uni-icons type="closeempty" size="14" color="#999" v-show="tempSearchForm.visitDate"
+                                <uni-icons type="closeempty" size="14" color="#999" style="z-index: 9999"
+                                    v-show="tempSearchForm.visitDate"
                                     @click.stop="tempSearchForm.visitDate = ''"></uni-icons>
                             </view>
                         </picker>
@@ -262,13 +263,13 @@ const toggleSelectAll = () => {
 const viewDetail = (item) => {
     // 跳转到详情页面
     uni.navigateTo({
-        url: `/pages/record/record-detail?id=${item?.id}`
+        url: `/pages/record/record-detail?id=${item.id}&projId=${item.visitProjId}`
     })
 }
 // 编辑
 const handleEdit = (item) => {
     uni.navigateTo({
-        url: `/pages/record/record-edit?id=${item?.id}`
+        url: `/pages/record/record-edit?id=${item.id}&projId=${item.visitProjId}`
     })
 }
 // 显示分配弹窗
@@ -421,7 +422,6 @@ const fetchGetSalerList = async () => {
 
 // 获取记录列表
 const getRecordList = async () => {
-    uni.showLoading({ title: '分配中...' })
     recordList.value = []
     try {
         uni.showLoading({

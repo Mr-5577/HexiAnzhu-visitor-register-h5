@@ -259,8 +259,12 @@ const continueRegister = () => {
     uni.navigateBack()
 }
 const getRecDetailById = async (id) => {
+    const params = {
+        projId: detailData.value.visitProjId,
+        id: id,
+    }
     try {
-        const res = await visitorRegisterApi.getVisitHis({ id: id })
+        const res = await visitorRegisterApi.getVisitHis(params)
         if (res.code === 200) {
             const data = res.data || []
             const [firastData] = data
