@@ -44,13 +44,14 @@
             <view class="form-card">
                 <view class="form-item">
                     <text class="label required">到访方式</text>
-                    <CustomPicker v-model="detailData.visitTypeId" :options="filteredVisitMethodList" label-key="name"
-                        value-key="id" placeholder="请选择到访方式" @change="onVisitMethodChange" />
+                    <CustomPicker v-model="detailData.visitTypeId" :options="filteredVisitMethodList"
+                        label-key="optionStr" value-key="valueStr" placeholder="请选择到访方式" :selectOnClick="true"
+                        @change="onVisitMethodChange" />
                 </view>
                 <view class="form-item">
                     <text class="label required">知晓途径</text>
-                    <CustomPicker v-model="detailData.knowWayId" :options="channelList" label-key="name" value-key="id"
-                        placeholder="请选择知晓途径" @change="onKnowWayChange" />
+                    <CustomPicker v-model="detailData.knowWayId" :options="channelList" label-key="optionStr"
+                        value-key="valueStr" placeholder="请选择知晓途径" :selectOnClick="true" @change="onKnowWayChange" />
                 </view>
 
                 <!-- 根据到访方式显示不同字段 -->
@@ -147,7 +148,7 @@ const visitType = computed(() => {
 // 根据来访类型过滤到访方式选项
 const filteredVisitMethodList = computed(() => {
     const filterIds = visitType.value === 'natural' ? NATURAL_VISIT_IDS : CHANNEL_VISIT_IDS
-    return visitMethodList.value.filter(item => filterIds.includes(item.id))
+    return visitMethodList.value.filter(item => filterIds.includes(item.valueStr))
 })
 
 // 增加人数
@@ -165,7 +166,7 @@ const decreasePeople = () => {
 
 // 到访方式选择变化
 const onVisitMethodChange = (value, selectedItem) => {
-    detailData.value.visitTypeName = selectedItem.name
+    detailData.value.visitTypeName = selectedItem.optionStr
 }
 
 // 报备时间选择
@@ -175,7 +176,7 @@ const onReportTimeChange = (e) => {
 
 // 知晓途径选择变化
 const onKnowWayChange = (value, selectedItem) => {
-    detailData.value.knowWayName = selectedItem.name
+    detailData.value.knowWayName = selectedItem.optionStr
 }
 const handleBack = () => {
     uni.navigateBack()
@@ -287,10 +288,7 @@ const fetchGetKnowWay = async () => {
     try {
         const res = await visitorRegisterApi.getKnowWay()
         if (res.code === 200) {
-            const data = res.data || []
-            const [firstData, ...restData] = data
-            const { optionStr, valueStr } = firstData || {}
-            channelList.value = transformData(optionStr, valueStr)
+            channelList.value = res.data || []
 
         } else {
             uni.showToast({
@@ -312,13 +310,14 @@ const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
         if (res.code === 200) {
-            const data = res.data || []
-            const [firstData, ...restData] = data
-            const { optionStr, valueStr } = firstData || {}
-            visitMethodList.value = transformData(optionStr, valueStr)
-            const targetData = visitMethodList.value.find(item => item.id == detailData.value.visitTypeId)
+            // const data = res.data || []
+            // const [firstData, ...restData] = data
+            // const { optionStr, valueStr } = firstData || {}
+            // visitMethodList.value = transformData(optionStr, valueStr)
+            visitMethodList.value = res.data || []
+            const targetData = visitMethodList.value.find(item => item.valueStr == detailData.value.visitTypeId)
             if (targetData) {
-                detailData.value.visitTypeName = targetData.name
+                detailData.value.visitTypeName = targetData.optionStr
             }
         } else {
             uni.showToast({

@@ -352,8 +352,8 @@ const handleSearch = async () => {
 
 // 获取来访方式显示文本
 const getTextRect = (val) => {
-    const target = visitMethodList.value.find((item) => item.id == val)
-    return target?.name || '-'
+    const target = visitMethodList.value.find((item) => item.valueStr == val)
+    return target?.optionStr || '-'
 }
 
 // 获取置业顾问显示文本
@@ -392,10 +392,11 @@ const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
         if (res.code === 200) {
-            const data = res.data || []
-            const [firstData, ...restData] = data
-            const { optionStr, valueStr } = firstData || {}
-            visitMethodList.value = transformData(optionStr, valueStr)
+            // const data = res.data || []
+            // const [firstData, ...restData] = data
+            // const { optionStr, valueStr } = firstData || {}
+            // visitMethodList.value = transformData(optionStr, valueStr)
+            visitMethodList.value = res.data || []
         }
     } catch (error) {
         visitMethodList.value = []

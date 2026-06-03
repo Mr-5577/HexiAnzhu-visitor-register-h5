@@ -69,4 +69,8 @@ export const visitorRegisterApi = {
   batchResetSaler: (data) => {
     return post("/visit/batchResetSaler", data);
   },
+  // 获取历史带访人列表
+  getBringManList: (data) => {
+    return post("/visit/getBringManList", data);
+  },
 };

@@ -23,7 +23,10 @@
                         </view>
 
                         <view class="name-content">
-                            <text class="name-text">{{ item.salerName }}</text>
+                            <view class="name-wrapper">
+                                <text class="name-text">{{ item.salerName }}</text>
+                                <text v-if="item.isNext" class="next-badge">下一位</text>
+                            </view>
                         </view>
 
                         <view class="team-content">
@@ -244,11 +247,12 @@ page {
     }
 
     .team-header {
-        width: 200rpx;
+        min-width: 180rpx;
+        max-width: 240rpx;
     }
 
     .action-header {
-        width: 180rpx;
+        width: 140rpx;
         text-align: center;
     }
 
@@ -277,16 +281,39 @@ page {
 
     .name-content {
         flex: 1;
+        min-width: 0; // 防止flex子项溢出
+    }
+
+    .name-wrapper {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 12rpx;
     }
 
     .name-text {
         font-size: 28rpx;
         color: #333;
         font-weight: 500;
+        white-space: nowrap;
+    }
+
+    // 标记样式
+    .next-badge {
+        display: inline-block;
+        padding: 2rpx 10rpx 4rpx;
+        background: linear-gradient(135deg, #ff6b6b, #ff4757);
+        color: #fff;
+        font-size: 20rpx;
+        border-radius: 20rpx;
+        font-weight: normal;
+        white-space: nowrap;
+        flex-shrink: 0; // 防止标记被压缩
     }
 
     .team-content {
-        width: 200rpx;
+        min-width: 180rpx;
+        max-width: 240rpx;
     }
 
     .team-text {
@@ -295,7 +322,7 @@ page {
     }
 
     .action-handle {
-        width: 180rpx;
+        width: 140rpx;
         display: flex;
         align-items: center;
         justify-content: center;

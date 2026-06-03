@@ -33,6 +33,10 @@
                     <text class="label">备用电话：</text>
                     <text class="value">{{ detailData.custTel2 || '-' }}</text>
                 </view>
+                <view class="info-row">
+                    <text class="label">知晓途径：</text>
+                    <text class="value">{{ detailData.knowWayName || '-' }}</text>
+                </view>
                 <!-- 渠道来访显示 -->
                 <template v-if="visitType === 'channel'">
                     <view class="info-row">
@@ -72,7 +76,6 @@
 <script setup>
 import { onLoad } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
-import { transformData } from '@/utils/common.js'
 import { visitorRegisterApi } from '@/common/api.js'
 
 // 自然来访,0自然到访、5电转访、8工程抵款、9棚改
@@ -119,13 +122,24 @@ const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
         if (res.code === 200) {
-            const data = res.data || []
-            const [firstData, ...restData] = data
-            const { optionStr, valueStr } = firstData || {}
-            const visitMethodList = transformData(optionStr, valueStr)
-            const targetData = visitMethodList.find(item => item.id == detailData.value.visitTypeId)
+            const visitMethodList = res.data || []
+            const targetData = visitMethodList.find(item => item.valueStr == detailData.value.visitTypeId)
             if (targetData) {
-                detailData.value.visitTypeName = targetData.name
+                detailData.value.visitTypeName = targetData.optionStr
+            }
+        }
+    } catch (error) {
+    }
+}
+// 知晓途径数据
+const fetchGetKnowWay = async () => {
+    try {
+        const res = await visitorRegisterApi.getKnowWay()
+        if (res.code === 200) {
+            const knowWayList = res.data || []
+            const targetData = knowWayList.find(item => item.valueStr == detailData.value.knowWayId)
+            if (targetData) {
+                detailData.value.knowWayName = targetData.optionStr
             }
         }
     } catch (error) {
@@ -152,6 +166,7 @@ onLoad(async (options) => {
         await getDetailById(id, projId)
         await fetchGetProjList()
         await fetchGetVisitType()
+        await fetchGetKnowWay()
     }
 })
 onMounted(() => { })

@@ -53,19 +53,20 @@
             <view class="form-card">
                 <view class="form-item">
                     <text class="label required">到访方式</text>
-                    <CustomPicker v-model="formData.visitTypeId" :options="filteredVisitMethodList" label-key="name"
-                        value-key="id" placeholder="请选择到访方式" @change="onVisitMethodChange" />
+                    <CustomPicker v-model="formData.visitTypeId" :options="filteredVisitMethodList"
+                        label-key="optionStr" value-key="valueStr" placeholder="请选择到访方式" :selectOnClick="true"
+                        @change="onVisitMethodChange" />
                 </view>
                 <view class="form-item">
                     <text class="label required">知晓途径</text>
-                    <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="name" value-key="id"
-                        placeholder="请选择知晓途径" @change="onKnowWayChange" />
+                    <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="optionStr"
+                        value-key="valueStr" placeholder="请选择知晓途径" :selectOnClick="true" @change="onKnowWayChange" />
                 </view>
 
                 <!-- 根据到访方式显示不同字段 -->
                 <template v-if="visitType === 'channel'">
                     <view class="form-item">
-                        <text class="label">渠道公司</text>
+                        <text class="label required">渠道公司</text>
                         <input class="input" v-model="formData.reportCom" disabled placeholder="渠道公司" />
                     </view>
 
@@ -75,7 +76,12 @@
                     </view>
                     <view class="form-item">
                         <text class="label required">带访人</text>
-                        <input class="input" v-model="formData.bringMan" placeholder="请输入带访人" />
+                        <view class="input-with-btn">
+                            <input class="input" v-model="formData.bringMan" placeholder="请输入带访人" />
+                            <view class="default-bringman-btn" @click="setDefaultBringMan">
+                                <text class="btn-text-small">默认带访人</text>
+                            </view>
+                        </view>
                     </view>
 
                     <view class="form-item">
@@ -108,6 +114,9 @@
         </view>
         <!-- 报备弹窗 -->
         <ReportPopup ref="reportPopupRef" :projectId="formData.visitProjId" @reportSelected="onReportSelected" />
+        <!-- 历史带访人列表 -->
+        <VisitPersonPopup ref="bringManPopupRef" :visitComId="reportInfo?.visitComId"
+            @bringManSelected="onBringManSelected" />
     </view>
 </template>
 
@@ -116,6 +125,7 @@ import dayjs from 'dayjs'
 import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref, computed, onMounted } from 'vue'
 import ReportPopup from './components/report-pop-up.vue'
+import VisitPersonPopup from './components/visit-person-pop-up.vue'
 import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
@@ -156,11 +166,17 @@ const channelList = ref([])
 const projectList = ref([])
 // 提交锁
 const isSubmitting = ref(false)
+// 报备信息
+const reportInfo = ref(null)
+// 带访人列表
+const bringManList = ref([])
+// 带访人弹窗ref
+const bringManPopupRef = ref(null)
 
 // 根据来访类型过滤到访方式选项
 const filteredVisitMethodList = computed(() => {
     const filterIds = visitType.value === 'natural' ? NATURAL_VISIT_IDS : CHANNEL_VISIT_IDS
-    return visitMethodList.value.filter(item => filterIds.includes(item.id))
+    return visitMethodList.value.filter(item => filterIds.includes(item.valueStr))
 })
 
 // 初始化表单数据
@@ -173,6 +189,7 @@ const resetForm = () => {
     formData.value.visitTypeName = '' // 到访方式name
     formData.value.bringMan = ''      // 带访人
     formData.value.bringTel = '' // 带访电话
+    formData.value.reportComArea = '' // 报备公司门店
     formData.value.reportCom = '' // 报备公司
     formData.value.reportId = '' // 报备ID
     formData.value.reporter = ''      // 报备人
@@ -215,7 +232,7 @@ const onProjectChange = (value, selectedItem) => {
 
 // 到访方式选择变化
 const onVisitMethodChange = (value, selectedItem) => {
-    formData.value.visitTypeName = selectedItem.name
+    formData.value.visitTypeName = selectedItem.optionStr
 }
 
 // 报备时间选择
@@ -225,7 +242,7 @@ const onReportTimeChange = (e) => {
 
 // 知晓途径选择变化
 const onKnowWayChange = (value, selectedItem) => {
-    formData.value.knowWayName = selectedItem.name
+    formData.value.knowWayName = selectedItem.optionStr
 }
 
 // 提交表单
@@ -262,6 +279,10 @@ const handleSubmit = async () => {
 
     // 渠道来访额外校验
     if (visitType.value === 'channel') {
+        if (!formData.value.reportId) {
+            uni.showToast({ title: '请选择报备公司', icon: 'none' })
+            return
+        }
         if (!formData.value.bringMan) {
             uni.showToast({ title: '请输入带访人', icon: 'none' })
             return
@@ -306,6 +327,9 @@ const handleSubmit = async () => {
                 visitType: visitType.value, // 来访类型
             }
             uni.setStorageSync('registerSuccessData', storageData)
+            // 重置表单
+            resetForm()
+
             // 携带记录ID跳转到登记成功页面
             uni.navigateTo({
                 url: `/pages/register/success?id=${res.data}`
@@ -348,6 +372,7 @@ const onReportSelected = (reportData) => {
     if (!reportData) {
         return
     }
+    reportInfo.value = reportData
     // 回填报备信息到表单
     formData.value.reportId = reportData.id
     formData.value.reportCom = reportData.reportCom
@@ -366,10 +391,7 @@ const fetchGetKnowWay = async () => {
     try {
         const res = await visitorRegisterApi.getKnowWay()
         if (res.code === 200) {
-            const data = res.data || []
-            const [firstData, ...restData] = data
-            const { optionStr, valueStr } = firstData || {}
-            channelList.value = transformData(optionStr, valueStr)
+            channelList.value = res.data || []
         } else {
             uni.showToast({
                 title: '获取知晓途径失败',
@@ -390,10 +412,11 @@ const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
         if (res.code === 200) {
-            const data = res.data || []
-            const [firstData, ...restData] = data
-            const { optionStr, valueStr } = firstData || {}
-            visitMethodList.value = transformData(optionStr, valueStr)
+            // const data = res.data || []
+            // const [firstData, ...restData] = data
+            // const { optionStr, valueStr } = firstData || {}
+            // visitMethodList.value = transformData(optionStr, valueStr)
+            visitMethodList.value = res.data || []
         } else {
             uni.showToast({
                 title: '获取到访方式失败',
@@ -447,15 +470,32 @@ const initFetchData = async () => {
     await Promise.all([fetchGetKnowWay(), fetchGetVisitType(), fetchGetProjList()])
 }
 
+// 设置默认带访人
+const setDefaultBringMan = async () => {
+    // 检查是否已选择报备公司
+    if (!reportInfo.value) {
+        uni.showToast({
+            title: '请先选择报备公司',
+            icon: 'none'
+        })
+        return
+    }
+    // 打开带访人选择弹窗
+    bringManPopupRef.value.openPopup()
+}
+const onBringManSelected = (bringManData) => {
+    if (!bringManData) {
+        return
+    }
+    formData.value.bringMan = bringManData.bringMan
+    formData.value.bringTel = bringManData.bringTel
+}
+
 onShow(() => {
     // initFetchData()
 })
 
-onHide(() => {
-    // visitType.value = 'channel'
-    // resetForm()
-    // reportPopupRef.value?.closePopup()
-})
+onHide(() => { })
 
 onMounted(() => {
     initFetchData()
@@ -679,6 +719,31 @@ page {
 .btn-arrow {
     font-size: 32rpx;
     color: #fff;
+}
+
+/* 带访人输入框带按钮样式 */
+.input-with-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.default-bringman-btn {
+    display: flex;
+    align-items: center;
+    padding: 4rpx 12rpx 8rpx;
+    box-sizing: border-box;
+    background: linear-gradient(135deg, #007AFF, #0056b3);
+    border-radius: 8rpx;
+    flex-shrink: 0;
+}
+
+.btn-text-small {
+    font-size: 24rpx;
+    font-weight: 500;
+    color: #fff;
+    white-space: nowrap;
 }
 
 // 底部按钮

@@ -50,6 +50,7 @@ const props = defineProps({
     disabled: { type: Boolean, default: false },
     spaceBetween: { type: Boolean, default: false },
     maskClosable: { type: Boolean, default: false },
+    selectOnClick: { type: Boolean, default: false }, // 点击选项时是否立即确认
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'pickerStateChange'])
@@ -73,6 +74,9 @@ const openPicker = () => {
 
 const selectOption = (idx) => {
     tempSelectedIndex.value = idx
+    if (props.selectOnClick) {
+        confirmPicker()
+    }
 }
 
 const confirmPicker = () => {

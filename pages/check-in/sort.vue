@@ -335,7 +335,8 @@ page {
     }
 
     .team-header {
-        width: 240rpx;
+        min-width: 180rpx;
+        max-width: 240rpx;
     }
 
     .drag-header {
@@ -368,16 +369,19 @@ page {
 
     .name-content {
         flex: 1;
+        min-width: 0; // 防止flex子项溢出
     }
 
     .name-text {
         font-size: 28rpx;
         color: #333;
         font-weight: 500;
+        white-space: nowrap;
     }
 
     .team-content {
-        width: 240rpx;
+        min-width: 180rpx;
+        max-width: 240rpx;
     }
 
     .team-text {
