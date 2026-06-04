@@ -12,25 +12,28 @@
         <!-- 表单内容 -->
         <scroll-view class="form-scroll" scroll-y>
             <view class="form-card">
-                <view class="form-report" v-show="visitType === 'channel'">
-                    <view class="quick-report-btn" @click="openReportPopup">
+                <view class="form-report">
+                    <view class="quick-report-btn" v-show="visitType === 'channel'" @click="openReportPopup">
                         <text class="btn-text">选择报备</text>
                         <text class="btn-arrow">›</text>
                     </view>
+                    <view class="quick-report-btn" @click="openSecondVisitPopup">
+                        <text class="btn-text">二次来访</text>
+                        <text class="btn-arrow">›</text>
+                    </view>
                 </view>
-                <!-- 项目 -->
+
                 <view class="form-item">
                     <text class="label required">项目</text>
                     <CustomPicker v-model="formData.visitProjId" :options="projectList" label-key="name" value-key="id"
                         placeholder="请选择项目" @change="onProjectChange" />
                 </view>
-                <!-- 客户姓名 -->
+
                 <view class="form-item">
                     <text class="label required">客户姓名</text>
                     <input class="input" v-model="formData.custName" placeholder="请输入客户姓名" maxlength="20" />
                 </view>
 
-                <!-- 客户电话 -->
                 <view class="form-item">
                     <text class="label required">客户电话</text>
                     <input class="input" v-model="formData.custTel" type="tel" placeholder="请输入客户电话" maxlength="11" />
@@ -138,7 +141,10 @@
         <VisitPersonPopup ref="bringManPopupRef" :visitComId="reportInfo?.visitComId"
             @bringManSelected="onBringManSelected" />
         <!-- 选择职业顾问 -->
-        <SaleListPopUp ref="salerPickerRef" :projectId="formData.visitProjId" @salerSelected="handleSalerSelected" />
+        <SaleListPopUp ref="salerPickerRef" :projectId="formData.visitProjId" @salerSelected="onSalerSelected" />
+        <!-- 来访记录弹窗 -->
+        <SecondVisitPopUp ref="secondVisitPopupRef" :projectId="formData.visitProjId"
+            @recordSelected="onRecordSelected" />
     </view>
 </template>
 
@@ -149,6 +155,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import ReportPopup from './components/report-pop-up.vue'
 import VisitPersonPopup from './components/visit-person-pop-up.vue'
 import SaleListPopUp from './components/saler-list-pop-up.vue'
+import SecondVisitPopUp from './components/second-visit-pop-up.vue'
 import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
@@ -203,6 +210,8 @@ const reportPopupRef = ref(null)
 const bringManPopupRef = ref(null)
 // 置业顾问弹窗ref
 const salerPickerRef = ref(null)
+// 来访记录弹窗ref
+const secondVisitPopupRef = ref(null)
 
 // 根据来访类型过滤到访方式选项
 const filteredVisitMethodList = computed(() => {
@@ -594,7 +603,7 @@ const openSalerPopup = async () => {
     }
 }
 // 处理选择的置业顾问
-const handleSalerSelected = (salerData) => {
+const onSalerSelected = (salerData) => {
     console.log('选中的置业顾问数据:', salerData)
     if (salerData) {
         formData.value.salerId = salerData.salerId
@@ -624,6 +633,31 @@ const fetchSalerList = async () => {
         }
     } catch (error) {
         consultantList.value = []
+    }
+}
+const openSecondVisitPopup = async () => {
+    if (formData.value.visitProjId) {
+        secondVisitPopupRef.value?.openPopup()
+    } else {
+        uni.showToast({
+            title: '请先选择项目',
+            icon: 'none'
+        })
+    }
+}
+// 处理选择的来访记录
+const onRecordSelected = (recordData) => {
+    console.log('选中的来访记录数据:', recordData)
+    if (recordData) {
+        formData.value.custName = recordData.custName
+        formData.value.custTel = recordData.custTel
+        formData.value.salerId = recordData.salerId
+        formData.value.salerName = recordData.salerName
+    } else {
+        formData.value.custName = ''
+        formData.value.custTel = ''
+        formData.value.salerId = ''
+        formData.value.salerName = '暂无'
     }
 }
 watch(backupPhones, () => {
@@ -841,13 +875,14 @@ page {
     justify-content: center;
     align-items: center;
     padding: 16rpx 0;
+    gap: 20rpx;
 }
 
 .quick-report-btn {
     display: flex;
     align-items: center;
     gap: 6rpx;
-    padding: 8rpx 80rpx 10rpx;
+    padding: 8rpx 46rpx 10rpx;
     background: linear-gradient(135deg, #007AFF, #0056b3);
     border-radius: 28rpx;
     transition: all 0.3s ease;

@@ -1,10 +1,10 @@
-<!-- 选择报备公司 弹窗 -->
+<!-- 来访记录 弹窗 -->
 <template>
     <uni-popup class="popup-dialog" ref="popupRef" type="bottom" background-color="#fff" border-radius="10px 10px 0 0"
         :is-mask-click="false" :style="{ zIndex: 999 }">
         <view class="popup-contain">
             <view class="popup-top">
-                <text class="popup-title">报备记录</text>
+                <text class="popup-title">选择来访记录</text>
                 <uni-icons type="closeempty" size="18" color="#666" class="close-btn" @click="closePopup"></uni-icons>
             </view>
 
@@ -14,22 +14,21 @@
                     <view class="search-item">
                         <input class="search-input" v-model="searchForm.custName" placeholder="客户姓名" />
                     </view>
-
                     <view class="search-item">
                         <input class="search-input" v-model="searchForm.custTel" placeholder="客户电话" />
                     </view>
                 </view>
-
                 <view class="search-row">
                     <view class="search-item">
-                        <picker style="z-index: 9999;width: 100%;" mode="date" :value="searchForm.reportTime"
-                            @change="onReportTimeSearchChange">
+                        <picker style="width: 100%;" mode="date" :value="searchForm.visitDate"
+                            @change="onVisitDateChange">
                             <view class="search-picker">
-                                {{ searchForm.reportTime || '报备时间' }}
+                                {{ searchForm.visitDate || '来访日期' }}
+                                <uni-icons type="closeempty" size="14" color="#999" style="z-index: 9999"
+                                    v-show="searchForm.visitDate" @click.stop="searchForm.visitDate = ''"></uni-icons>
                             </view>
                         </picker>
                     </view>
-
                     <view class="search-item search-buttons">
                         <button class="reset-btn" @click="resetSearch">重置</button>
                         <button class="search-btn" @click="handleSearch">查询</button>
@@ -38,47 +37,40 @@
             </view>
 
             <scroll-view class="popup-content" scroll-y>
-                <!-- 报备列表 -->
-                <view class="report-list" v-if="reportList.length > 0">
-                    <view v-for="(item, index) in reportList" :key="index" class="report-item"
-                        :class="{ 'report-item-active': selectedReportId === item.id }" @click="selectReport(item)">
-                        <view class="report-detail">
+                <view class="record-list" v-if="recordList.length > 0">
+                    <view v-for="(item, index) in recordList" :key="index" class="record-item"
+                        :class="{ 'record-item-active': selectedRecordId === item.id }" @click="selectRecord(item)">
+                        <view class="record-detail">
                             <view class="select-icon">
-                                <uni-icons :type="selectedReportId === item.id ? 'checkmarkempty' : 'circle'" size="20"
-                                    :color="selectedReportId === item.id ? '#007AFF' : '#ccc'" />
+                                <uni-icons :type="selectedRecordId === item.id ? 'checkmarkempty' : 'circle'" size="20"
+                                    :color="selectedRecordId === item.id ? '#007AFF' : '#ccc'" />
                             </view>
-                            <view class="detail-row">
-                                <text class="detail-label">渠道公司：</text>
-                                <text class="detail-value">{{ item.reportCom }}</text>
+                            <view class="info-row">
+                                <text class="info-label">客户名称：</text>
+                                <text class="info-value">{{ item.custName }}</text>
                             </view>
-                            <view class="detail-row">
-                                <text class="detail-label">报备人：</text>
-                                <text class="detail-value">{{ item.reportMan }}</text>
+                            <view class="info-row">
+                                <text class="info-label">客户电话：</text>
+                                <text class="info-value">{{ item.custTel }}</text>
                             </view>
-                            <view class="detail-row">
-                                <text class="detail-label">客户姓名：</text>
-                                <text class="detail-value">{{ item.custName }}</text>
+                            <view class="info-row">
+                                <text class="info-label">置业顾问：</text>
+                                <text class="info-value">{{ item.salerName }}</text>
                             </view>
-                            <view class="detail-row">
-                                <text class="detail-label">客户电话：</text>
-                                <text class="detail-value">{{ item.custTel }}</text>
-                            </view>
-                            <view class="detail-row">
-                                <text class="detail-label">报备时间：</text>
-                                <text class="detail-value">{{ item.reportTime }}</text>
+                            <view class="info-row">
+                                <text class="info-label">来访时间：</text>
+                                <text class="info-value">{{ item.visitTime }}</text>
                             </view>
                         </view>
                     </view>
                 </view>
-
-                <!-- 空状态 -->
                 <view v-else class="empty-state">
-                    <text class="empty-text">暂无报备信息</text>
+                    <text class="empty-text">暂无来访记录</text>
                 </view>
             </scroll-view>
 
-            <view class="popup-bottom" v-if="reportList.length > 0">
-                <button class="submit-btn" :disabled="!selectedReportData" @click="confirmSelection">
+            <view class="popup-bottom" v-if="recordList.length > 0">
+                <button class="submit-btn" :disabled="!selectedRecordData" @click="confirmSelection">
                     确定选择
                 </button>
             </view>
@@ -93,118 +85,120 @@ import { visitorRegisterApi } from '@/common/api.js'
 const props = defineProps({
     projectId: {
         type: [String, Number],
+        required: true
     }
 })
 
-// 定义事件
-const emit = defineEmits(['reportSelected'])
+const emit = defineEmits(['recordSelected'])
 
-// 弹窗引用
 const popupRef = ref(null)
+const salerList = ref([])
+const recordList = ref([])
+const selectedRecordId = ref(null)
+const selectedRecordData = ref(null)
 
-// 查询表单
 const searchForm = ref({
-    custTel: '',
     custName: '',
-    reportTime: ''
+    custTel: '',
+    visitDate: ''
 })
 
-// 列表数据
-const reportList = ref([])
-
-// 选中的报备信息ID
-const selectedReportId = ref(null)
-const selectedReportData = ref(null)
-
-// 报备时间搜索选择
-const onReportTimeSearchChange = (e) => {
-    searchForm.value.reportTime = e.detail.value
+const onVisitDateChange = (e) => {
+    searchForm.value.visitDate = e.detail.value
 }
 
-// 重置查询
 const resetSearch = () => {
     searchForm.value = {
-        custTel: '',
         custName: '',
-        reportTime: ''
+        custTel: '',
+        visitDate: ''
     }
     handleSearch()
 }
-
-// 查询
-const handleSearch = () => {
-    // 清空选中状态
-    selectedReportId.value = null
-    selectedReportData.value = null
-    fetchReportList()
+// 获取置业顾问显示文本
+const getSalerTextRect = (val) => {
+    const target = salerList.value?.find((item) => item.salerId == val)
+    return target?.salerName || '-'
 }
 
-const fetchReportList = () => {
-    reportList.value = []
-    const params = {
-        projId: props.projectId,
-        custTel: searchForm.value.custTel,
-        custName: searchForm.value.custName,
-        reportTimeStart: searchForm.value.reportTime ? `${searchForm.value.reportTime} 00:00:00` : '',
-        reportTimeEnd: searchForm.value.reportTime ? `${searchForm.value.reportTime} 23:59:59` : ''
-    }
-    visitorRegisterApi.getReportHis(params).then((res) => {
+// 获取置业顾问
+const fetchGetSalerList = async () => {
+    try {
+        const res = await visitorRegisterApi.getSalerList({ projId: props.projectId })
         if (res.code === 200) {
-            reportList.value = res.data || []
+            const dataList = res.data || []
+            salerList.value = res.data || []
         }
-    }).catch((err) => {
-        uni.showToast({
-            title: '查询失败，请稍后重试',
-            icon: 'none'
-        })
-    })
-}
-
-// 选择报备信息
-const selectReport = (item) => {
-    if (selectedReportId.value === item.id) {
-        // 如果已选中，则取消选中
-        selectedReportId.value = null
-        selectedReportData.value = null
-    } else {
-        // 否则选中当前项
-        selectedReportId.value = item.id
-        selectedReportData.value = item
+    } catch (error) {
+        salerList.value = []
     }
 }
 
-// 确认选择
+const fetchRecordList = async () => {
+    try {
+        uni.showLoading({ title: '加载中...', mask: true })
+        const params = {
+            projId: props.projectId,
+            custName: searchForm.value.custName,
+            custTel: searchForm.value.custTel,
+        }
+        if (searchForm.value.visitDate) {
+            params.visitTimeStart = `${searchForm.value.visitDate} 00:00:00`
+            params.visitTimeEnd = `${searchForm.value.visitDate} 23:59:59`
+        }
+        const res = await visitorRegisterApi.getVisitHis(params)
+        if (res.code === 200) {
+            const list = res.data || []
+            recordList.value = list.map((item) => {
+                return {
+                    ...item,
+                    salerName: getSalerTextRect(item.salerId)
+                }
+            })
+        }
+    } catch (error) {
+        uni.showToast({ title: '查询失败', icon: 'none' })
+    } finally {
+        uni.hideLoading()
+    }
+}
+
+const handleSearch = () => {
+    selectedRecordId.value = null
+    selectedRecordData.value = null
+    fetchRecordList()
+}
+
+const selectRecord = (item) => {
+    if (selectedRecordId.value === item.id) {
+        selectedRecordId.value = null
+        selectedRecordData.value = null
+    } else {
+        selectedRecordId.value = item.id
+        selectedRecordData.value = item
+    }
+}
+
 const confirmSelection = () => {
-    if (!selectedReportData.value) {
-        uni.showToast({
-            title: '请选择报备信息',
-            icon: 'none'
-        })
+    if (!selectedRecordData.value) {
+        uni.showToast({ title: '请选择来访记录', icon: 'none' })
         return
     }
-    // 关闭弹窗
     closePopup()
-    // 触发父组件事件，传递选中的数据
-    emit('reportSelected', selectedReportData.value)
+    emit('recordSelected', selectedRecordData.value)
 }
 
-// 打开弹窗
-const openPopup = () => {
-    // 重置查询条件
+const openPopup = async () => {
+    await fetchGetSalerList()
     resetSearch()
     popupRef.value.open()
 }
 
-// 关闭弹窗
 const closePopup = () => {
     popupRef.value.close()
 }
 
-// 暴露方法给父组件
-defineExpose({
-    openPopup,
-    closePopup
-})
+defineExpose({ openPopup, closePopup })
 </script>
 
 <style lang="scss" scoped>
@@ -243,20 +237,17 @@ defineExpose({
         }
     }
 
-    /* 查询表单样式 */
     .search-form {
         padding: 20rpx 30rpx;
         background-color: #f8f8f8;
         border-bottom: 1rpx solid #f0f0f0;
         flex-shrink: 0;
-        width: 100%;
 
         .search-row {
             display: flex;
             margin-bottom: 20rpx;
             width: 100%;
             align-items: center;
-            flex-wrap: nowrap;
 
             &:last-child {
                 margin-bottom: 0;
@@ -267,58 +258,44 @@ defineExpose({
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 16rpx;
-            width: 50%;
             margin-right: 20rpx;
+
             &:last-child {
                 margin-right: 0;
             }
-            &.flex-1 {
-                flex: 1;
-            }
+        }
 
-            .search-picker {
-                flex: 1;
-                height: 60rpx;
-                line-height: 60rpx;
-                background-color: #fff;
-                border-radius: 8rpx;
-                padding: 0 20rpx;
-                font-size: 26rpx;
-                color: #999;
-                border: 1rpx solid #e0e0e0;
-                position: relative;
-                width: 100%;
+        .search-input {
+            flex: 1;
+            height: 60rpx;
+            background-color: #fff;
+            border-radius: 8rpx;
+            padding: 0 20rpx;
+            font-size: 26rpx;
+            color: #666;
+            border: 1rpx solid #e0e0e0;
+        }
 
-                &::after {
-                    content: '>';
-                    position: absolute;
-                    right: 20rpx;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    color: #ccc;
-                    font-size: 24rpx;
-                }
-            }
-
-            .search-input {
-                flex: 1;
-                height: 60rpx;
-                background-color: #fff;
-                border-radius: 8rpx;
-                padding: 0 20rpx;
-                font-size: 26rpx;
-                color: #999;
-                border: 1rpx solid #e0e0e0;
-
-                .input-placeholder {
-                    color: #999;
-                }
-            }
+        .search-picker {
+            flex: 1;
+            height: 60rpx;
+            line-height: 60rpx;
+            background-color: #fff;
+            border-radius: 8rpx;
+            padding: 0 20rpx;
+            font-size: 26rpx;
+            color: #666;
+            border: 1rpx solid #e0e0e0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         .search-buttons {
             display: flex;
+            gap: 20rpx;
+
             .reset-btn,
             .search-btn {
                 width: 120rpx;
@@ -326,7 +303,6 @@ defineExpose({
                 line-height: 60rpx;
                 font-size: 26rpx;
                 border-radius: 8rpx;
-                border: none;
                 padding: 0;
                 margin: 0;
 
@@ -339,7 +315,6 @@ defineExpose({
                 background-color: #fff;
                 color: #666;
                 border: 1rpx solid #e0e0e0;
-                margin-right: 20rpx;
             }
 
             .search-btn {
@@ -353,66 +328,60 @@ defineExpose({
         flex: 1;
         overflow-y: auto;
         padding: 20rpx 30rpx;
-        box-sizing: border-box;
     }
 
-    /* 报备列表样式 */
-    .report-list {
+    .record-list {
         display: flex;
         flex-direction: column;
     }
 
-    .report-item {
+    .record-item {
         background: #fff;
         border-radius: 16rpx;
-        padding: 12rpx 24rpx;
+        padding: 20rpx 24rpx;
         border: 2rpx solid #f0f0f0;
-        transition: all 0.3s ease;
         margin-bottom: 20rpx;
-        &.report-item-active {
+        transition: all 0.3s ease;
+
+        &.record-item-active {
             border-color: #007AFF;
             background-color: #f0f8ff;
-            box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.1);
         }
     }
 
-    .report-detail {
+    .record-detail {
         position: relative;
 
         .select-icon {
-            flex-shrink: 0;
             position: absolute;
             top: 0;
             right: -10rpx;
         }
 
-        .detail-row {
+        .info-row {
             display: flex;
-            margin-bottom: 6rpx;
+            margin-bottom: 12rpx;
             font-size: 26rpx;
-            padding-right: 20rpx;
-            box-sizing: border-box;
+            padding-right: 30rpx;
 
             &:last-child {
                 margin-bottom: 0;
             }
 
-            .detail-label {
+            .info-label {
                 color: #999;
                 width: 140rpx;
                 flex-shrink: 0;
             }
 
-            .detail-value {
+            .info-value {
                 color: #333;
                 flex: 1;
             }
         }
     }
 
-    /* 空状态样式 */
     .empty-state {
-        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -431,6 +400,8 @@ defineExpose({
         box-sizing: border-box;
         border-top: 1rpx solid #f0f0f0;
         flex-shrink: 0;
+        display: flex;
+        justify-content: center;
 
         .submit-btn {
             width: 60%;
@@ -440,7 +411,6 @@ defineExpose({
             font-size: 28rpx;
             font-weight: 500;
             border-radius: 44rpx;
-            border: none;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -451,19 +421,12 @@ defineExpose({
 
             &:active {
                 opacity: 0.9;
-                transform: scale(0.98);
             }
         }
 
         .submit-btn[disabled] {
             background: #e0e0e0;
             color: #999;
-            box-shadow: none;
-            transform: none;
-
-            &:active {
-                transform: none;
-            }
         }
     }
 }
