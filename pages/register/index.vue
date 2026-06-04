@@ -73,6 +73,15 @@
                     <CustomPicker v-model="formData.knowWayId" :options="channelList" label-key="optionStr"
                         value-key="valueStr" placeholder="请选择知晓途径" :selectOnClick="true" @change="onKnowWayChange" />
                 </view>
+                <view class="form-item">
+                    <text class="label">预测置业顾问</text>
+                    <view class="input-with-btn">
+                        <input class="input" v-model="formData.salerName" placeholder="置业顾问名称" disabled />
+                        <view class="default-bringman-btn" @click="openSalerPopup">
+                            <text class="btn-text-small">选择顾问</text>
+                        </view>
+                    </view>
+                </view>
 
                 <!-- 根据到访方式显示不同字段 -->
                 <template v-if="visitType === 'channel'">
@@ -128,6 +137,8 @@
         <!-- 历史带访人列表 -->
         <VisitPersonPopup ref="bringManPopupRef" :visitComId="reportInfo?.visitComId"
             @bringManSelected="onBringManSelected" />
+        <!-- 选择职业顾问 -->
+        <SaleListPopUp ref="salerPickerRef" :projectId="formData.visitProjId" @salerSelected="handleSalerSelected" />
     </view>
 </template>
 
@@ -137,6 +148,7 @@ import { onShow, onHide } from '@dcloudio/uni-app'
 import { ref, computed, onMounted, watch } from 'vue'
 import ReportPopup from './components/report-pop-up.vue'
 import VisitPersonPopup from './components/visit-person-pop-up.vue'
+import SaleListPopUp from './components/saler-list-pop-up.vue'
 import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
@@ -168,7 +180,9 @@ const formData = ref({
     knowWayId: '', // 知晓途径ID
     knowWayName: '', // 知晓途径name
     visitProjId: '', // 项目ID
-    visitProjName: '' // 项目
+    visitProjName: '', // 项目
+    salerId: '', // 置业顾问ID
+    salerName: '暂无', // 置业顾问name
 })
 
 // 来访方式列表
@@ -183,8 +197,12 @@ const isSubmitting = ref(false)
 const reportInfo = ref(null)
 // 带访人列表
 const bringManList = ref([])
+// 报备弹窗ref
+const reportPopupRef = ref(null)
 // 带访人弹窗ref
 const bringManPopupRef = ref(null)
+// 置业顾问弹窗ref
+const salerPickerRef = ref(null)
 
 // 根据来访类型过滤到访方式选项
 const filteredVisitMethodList = computed(() => {
@@ -225,6 +243,8 @@ const removeBackupPhone = (index) => {
 
 // 初始化表单数据
 const resetForm = () => {
+    // formData.value.visitProjId = '' // 项目ID
+    // formData.value.visitProjName = '' // 项目
     formData.value.custName = '' // 客户姓名
     formData.value.custTel = '' // 客户电话
     backupPhones.value = [''] // 重置备用电话列表
@@ -241,8 +261,8 @@ const resetForm = () => {
     formData.value.reportTime = ''    // 报备时间
     formData.value.knowWayId = '' // 知晓途径
     formData.value.knowWayName = '' // 知晓途径name
-    // formData.value.visitProjId = '' // 项目ID
-    // formData.value.visitProjName = '' // 项目
+    formData.value.salerId = '' // 置业顾问ID
+    formData.value.salerName = '暂无' // 置业顾问name
 }
 
 // 解析备用电话字符串，填充到备用电话列表
@@ -276,10 +296,12 @@ const decreasePeople = () => {
 const switchTab = (type) => {
     visitType.value = type
     resetForm()
+    fetchSalerList()
 }
 
 // 项目选择变化
 const onProjectChange = (value, selectedItem) => {
+    // console.log('项目选择变化:', value, selectedItem)
     formData.value.visitProjName = selectedItem.name
 
     // 清除报备人相关信息
@@ -287,6 +309,11 @@ const onProjectChange = (value, selectedItem) => {
     formData.value.reportCom = ''
     formData.value.reporter = ''
     formData.value.reportTime = ''
+    // 清除置业顾问相关信息
+    formData.value.salerId = ""
+    formData.value.salerName = "暂无"
+    // 切换项目查询当前项目的置业顾问列表
+    fetchSalerList()
 }
 
 // 到访方式选择变化
@@ -376,6 +403,8 @@ const handleSubmit = async () => {
         visitTime: dayjs().format('YYYY-MM-DD HH:mm:ss'), // 到访时间
         visitProjId: formData.value.visitProjId, // 项目ID
         knowWayId: formData.value.knowWayId, // 知晓途径ID
+        // 条件添加 salerId
+        ...(formData.value.salerId && { salerId: formData.value.salerId })
     }
     uni.showLoading({ title: '提交中...' })
     try {
@@ -416,9 +445,6 @@ const handleSubmit = async () => {
         isSubmitting.value = false
     }
 }
-
-// 报备弹窗ref
-const reportPopupRef = ref(null)
 
 // 打开报备选择弹窗
 const openReportPopup = () => {
@@ -515,6 +541,8 @@ const fetchGetProjList = async () => {
             if (newData.length > 0) {
                 formData.value.visitProjId = newData[0].id
                 formData.value.visitProjName = newData[0].name
+                // 获取顾问列表并根据条件回显预测置业顾问名称
+                fetchSalerList()
             }
         } else {
             uni.showToast({
@@ -554,6 +582,49 @@ const onBringManSelected = (bringManData) => {
     }
     formData.value.bringMan = bringManData.bringMan
     formData.value.bringTel = bringManData.bringTel
+}
+const openSalerPopup = async () => {
+    if (formData.value.visitProjId) {
+        salerPickerRef.value?.openPopup()
+    } else {
+        uni.showToast({
+            title: '请先选择项目',
+            icon: 'none'
+        })
+    }
+}
+// 处理选择的置业顾问
+const handleSalerSelected = (salerData) => {
+    console.log('选中的置业顾问数据:', salerData)
+    if (salerData) {
+        formData.value.salerId = salerData.salerId
+        formData.value.salerName = salerData.salerName
+    } else {
+        formData.value.salerId = ''
+        formData.value.salerName = '暂无'
+    }
+}
+// 获取顾问列表
+const fetchSalerList = async () => {
+    if (!formData.value.visitProjId) return
+    try {
+        const res = await visitorRegisterApi.getSalerList({ projId: formData.value.visitProjId })
+        if (res.code === 200) {
+            const list = res.data || []
+            // 找到已签到顾问：lastSignStatus === 1 且 isNext 为 true 的数据
+            const nextData = list.filter(item => item.lastSignStatus == 1 && item.isNext)
+            if (nextData && nextData.length > 0) {
+                // 如果存在已签到且 isNext 为 true 的数据，预测置业顾问为第一个,只是作为展示使用，不作为提交数据
+                formData.value.salerId = ""
+                formData.value.salerName = nextData[0].salerName
+            } else {
+                formData.value.salerId = ""
+                formData.value.salerName = "暂无"
+            }
+        }
+    } catch (error) {
+        consultantList.value = []
+    }
 }
 watch(backupPhones, () => {
     updateCustTel2()
