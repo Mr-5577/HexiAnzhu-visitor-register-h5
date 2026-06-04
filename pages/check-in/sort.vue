@@ -12,31 +12,32 @@
         </view>
         <!-- 营销人员列表 -->
         <view class="list-section">
-            <view class="list-wrapper" id="listWrapper">
+            <view class="list-wrapper" id="listWrapper" v-show="listData.length > 0">
                 <view class="list-header">
                     <text class="header-item sort-header">序号</text>
                     <text class="header-item name-header">人员名称</text>
                     <text class="header-item team-header">团队名称</text>
                     <text class="header-item drag-header">拖动排序</text>
                 </view>
+                <template v-if="listData.length > 0">
+                    <view v-for="(item, index) in listData" :key="item.id" class="list-item">
+                        <view class="sort-number">
+                            <text class="sort-text">{{ index + 1 }}</text>
+                        </view>
 
-                <view v-for="(item, index) in listData" :key="item.id" class="list-item">
-                    <view class="sort-number">
-                        <text class="sort-text">{{ index + 1 }}</text>
-                    </view>
+                        <view class="name-content">
+                            <text class="name-text">{{ item.salerName }}</text>
+                        </view>
 
-                    <view class="name-content">
-                        <text class="name-text">{{ item.salerName }}</text>
-                    </view>
+                        <view class="team-content">
+                            <text class="team-text">{{ item.teamName }}</text>
+                        </view>
 
-                    <view class="team-content">
-                        <text class="team-text">{{ item.teamName }}</text>
+                        <view class="drag-handle">
+                            <text class="drag-icon">☰</text>
+                        </view>
                     </view>
-
-                    <view class="drag-handle">
-                        <text class="drag-icon">☰</text>
-                    </view>
-                </view>
+                </template>
             </view>
             <!-- 空状态 -->
             <view v-if="listData.length === 0" class="empty-state">

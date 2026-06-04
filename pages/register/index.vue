@@ -35,13 +35,24 @@
                     <text class="label required">客户电话</text>
                     <input class="input" v-model="formData.custTel" type="tel" placeholder="请输入客户电话" maxlength="11" />
                 </view>
-                <view class="form-item">
-                    <text class="label">备用电话</text>
-                    <input class="input" v-model="formData.custTel2" type="tel" placeholder="请输入备用电话" maxlength="11" />
+
+                <!-- 备用电话列表 -->
+                <view v-for="(phone, index) in backupPhones" :key="index" class="form-item">
+                    <text class="label">备用电话{{ index + 1 }}</text>
+                    <view class="input-with-icon">
+                        <input class="input" v-model="backupPhones[index]" type="tel" placeholder="请输入备用电话"
+                            maxlength="11" />
+                        <view class="action-icon" @click="addBackupPhone" v-if="index === backupPhones.length - 1">
+                            <text class="icon-plus">+</text>
+                        </view>
+                        <view class="action-icon" @click="removeBackupPhone(index)" v-else>
+                            <text class="icon-minus">-</text>
+                        </view>
+                    </view>
                 </view>
 
                 <!-- 到访人数 -->
-                <view class="form-item ">
+                <view class="form-item">
                     <text class="label required">到访人数</text>
                     <view class="number-input">
                         <view class="number-btn" @click="decreasePeople">-</view>
@@ -123,7 +134,7 @@
 <script setup>
 import dayjs from 'dayjs'
 import { onShow, onHide } from '@dcloudio/uni-app'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import ReportPopup from './components/report-pop-up.vue'
 import VisitPersonPopup from './components/visit-person-pop-up.vue'
 import CustomPicker from '@/components/custom-picker/index.vue'
@@ -137,11 +148,13 @@ const CHANNEL_VISIT_IDS = ['1', '2', '3', '4', '6', '7']
 
 // 来访类型
 const visitType = ref('channel') // natural: 自然来访, channel: 渠道来访
+// 备用电话列表
+const backupPhones = ref(['']) // 初始化一个空备用电话
 // 表单数据
 const formData = ref({
     custName: '', // 客户姓名
     custTel: '', // 客户电话1
-    custTel2: '', // 备用电话
+    custTel2: '', // 备用电话（逗号分隔）
     visitNum: 1, // 到访人数
     visitTypeId: '', // 到访方式ID
     visitTypeName: '', // 到访方式name
@@ -179,10 +192,42 @@ const filteredVisitMethodList = computed(() => {
     return visitMethodList.value.filter(item => filterIds.includes(item.valueStr))
 })
 
+// 更新custTel2字段（将所有备用电话用逗号拼接）
+const updateCustTel2 = () => {
+    // 过滤掉空字符串
+    const validPhones = backupPhones.value.filter(phone => phone.trim() !== '')
+    formData.value.custTel2 = validPhones.join(',')
+}
+
+// 监听备用电话列表变化，自动更新custTel2
+const watchBackupPhones = () => {
+    updateCustTel2()
+}
+
+// 添加备用电话
+const addBackupPhone = () => {
+    if (backupPhones.value.length >= 5) {
+        uni.showToast({ title: '最多添加5个备用电话', icon: 'none' })
+        return
+    }
+    backupPhones.value.push('')
+}
+
+// 删除备用电话
+const removeBackupPhone = (index) => {
+    if (backupPhones.value.length <= 1) {
+        uni.showToast({ title: '至少保留一个备用电话', icon: 'none' })
+        return
+    }
+    backupPhones.value.splice(index, 1)
+    updateCustTel2()
+}
+
 // 初始化表单数据
 const resetForm = () => {
     formData.value.custName = '' // 客户姓名
     formData.value.custTel = '' // 客户电话
+    backupPhones.value = [''] // 重置备用电话列表
     formData.value.custTel2 = '' // 备用电话
     formData.value.visitNum = 1 // 到访人数
     formData.value.visitTypeId = '' // 到访方式ID
@@ -198,6 +243,20 @@ const resetForm = () => {
     formData.value.knowWayName = '' // 知晓途径name
     // formData.value.visitProjId = '' // 项目ID
     // formData.value.visitProjName = '' // 项目
+}
+
+// 解析备用电话字符串，填充到备用电话列表
+const parseBackupPhones = (custTel2Str) => {
+    if (!custTel2Str) {
+        backupPhones.value = ['']
+        return
+    }
+    const phones = custTel2Str.split(',').filter(phone => phone.trim() !== '')
+    if (phones.length === 0) {
+        backupPhones.value = ['']
+    } else {
+        backupPhones.value = phones
+    }
 }
 
 // 增加人数
@@ -247,6 +306,9 @@ const onKnowWayChange = (value, selectedItem) => {
 
 // 提交表单
 const handleSubmit = async () => {
+    // 提交前更新custTel2
+    updateCustTel2()
+
     console.log('提交表单数据:', formData.value)
     if (isSubmitting.value) {
         return
@@ -264,9 +326,13 @@ const handleSubmit = async () => {
         uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
         return
     }
-    if (formData.value.custTel2 && !/^1[3-9]\d{9}$/.test(formData.value.custTel2)) {
-        uni.showToast({ title: '请输入正确的备用电话', icon: 'none' })
-        return
+    // 校验所有备用电话
+    const validPhones = backupPhones.value.filter(phone => phone.trim() !== '')
+    for (let i = 0; i < validPhones.length; i++) {
+        if (!/^1[3-9]\d{9}$/.test(validPhones[i])) {
+            uni.showToast({ title: `请输入正确的备用电话${i + 1}`, icon: 'none' })
+            return
+        }
     }
     if (!formData.value.visitTypeId) {
         uni.showToast({ title: '请选择到访方式', icon: 'none' })
@@ -300,7 +366,7 @@ const handleSubmit = async () => {
         visitType: visitType.value, // 来访类型
         custName: formData.value.custName, // 客户姓名
         custTel: formData.value.custTel, // 客户电话
-        custTel2: formData.value.custTel2, // 客户电话
+        custTel2: formData.value.custTel2, // 备用电话（逗号分隔）
         visitNum: formData.value.visitNum, // 到访人数
         visitTypeId: formData.value.visitTypeId, // 到访方式ID
         reportId: formData.value.reportId, // 报备ID
@@ -381,8 +447,11 @@ const onReportSelected = (reportData) => {
     // 回填客户信息
     formData.value.custName = reportData.custName
     formData.value.custTel = reportData.custTel
+    // 回填备用电话
     if (reportData.custTel2) {
-        formData.value.custTel2 = reportData.custTel2
+        parseBackupPhones(reportData.custTel2)
+    } else {
+        backupPhones.value = ['']
     }
 }
 
@@ -412,10 +481,6 @@ const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
         if (res.code === 200) {
-            // const data = res.data || []
-            // const [firstData, ...restData] = data
-            // const { optionStr, valueStr } = firstData || {}
-            // visitMethodList.value = transformData(optionStr, valueStr)
             visitMethodList.value = res.data || []
         } else {
             uni.showToast({
@@ -490,15 +555,18 @@ const onBringManSelected = (bringManData) => {
     formData.value.bringMan = bringManData.bringMan
     formData.value.bringTel = bringManData.bringTel
 }
+watch(backupPhones, () => {
+    updateCustTel2()
+}, { deep: true })
 
-onShow(() => {
-    // initFetchData()
-})
-
+onShow(() => { })
 onHide(() => { })
 
+// 监听备用电话变化
 onMounted(() => {
     initFetchData()
+    // 添加watch监听backupPhones变化
+    watchBackupPhones()
 })
 </script>
 
@@ -575,7 +643,6 @@ page {
     flex-wrap: nowrap;
     justify-content: space-between;
     align-items: center;
-    // padding: 16rpx 0;
     height: 80rpx;
 }
 
@@ -592,14 +659,20 @@ page {
 .label.required::before {
     content: '*';
     color: #ff4444;
-    // margin-right: 4rpx;
     position: absolute;
     left: -10rpx;
     top: 50%;
     transform: translateY(-50%);
 }
 
-/* 输入框 */
+/* 输入框带图标 */
+.input-with-icon {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
 .input {
     flex: 1;
     font-size: 30rpx;
@@ -611,6 +684,31 @@ page {
     .input-placeholder {
         color: #999;
     }
+}
+
+/* 操作图标样式 */
+.action-icon {
+    width: 48rpx;
+    height: 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12rpx;
+    background-color: #ededed;
+    flex-shrink: 0;
+}
+
+.icon-plus,
+.icon-minus {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #007AFF;
+    padding-bottom: 6rpx;
+    box-sizing: border-box;
+}
+
+.icon-minus {
+    color: #ff4444;
 }
 
 /* 数字输入框 */
@@ -663,33 +761,6 @@ page {
     top: 50%;
     transform: translateY(-50%);
     color: #999;
-}
-
-/* 单选组 */
-.radio-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16rpx;
-}
-
-
-.radio-item {
-    width: 200rpx;
-    height: 54rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8rpx;
-    font-size: 26rpx;
-    color: #999999;
-    // padding: 6rpx 36rpx;
-    border: 1rpx solid #dfdede;
-    border-radius: 10rpx;
-}
-
-.radio-item.active {
-    color: #007AFF;
-    border-color: #007AFF;
 }
 
 /* 快速报备按钮样式 */

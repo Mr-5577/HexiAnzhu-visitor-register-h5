@@ -25,10 +25,20 @@
                     <text class="label required">客户电话</text>
                     <input class="input" v-model="detailData.custTel" type="tel" placeholder="请输入客户电话" maxlength="11" />
                 </view>
-                <view class="form-item">
-                    <text class="label">备用电话</text>
-                    <input class="input" v-model="detailData.custTel2" type="tel" placeholder="请输入备用电话"
-                        maxlength="11" />
+
+                <!-- 备用电话列表 -->
+                <view v-for="(phone, index) in backupPhones" :key="index" class="form-item backup-phone-item">
+                    <text class="label">备用电话{{ index + 1 }}</text>
+                    <view class="input-with-icon">
+                        <input class="input" v-model="backupPhones[index]" type="tel" placeholder="请输入备用电话"
+                            maxlength="11" />
+                        <view class="action-icon" @click="addBackupPhone" v-if="index === backupPhones.length - 1">
+                            <text class="icon-plus">+</text>
+                        </view>
+                        <view class="action-icon" @click="removeBackupPhone(index)" v-else>
+                            <text class="icon-minus">-</text>
+                        </view>
+                    </view>
                 </view>
 
                 <!-- 到访人数 -->
@@ -56,11 +66,6 @@
 
                 <!-- 根据到访方式显示不同字段 -->
                 <template v-if="visitType === 'channel'">
-                    <!-- <view class="form-item">
-                        <text class="label">渠道公司</text>
-                        <input class="input" v-model="detailData.reportCom" disabled placeholder="渠道公司" />
-                    </view> -->
-
                     <view class="form-item">
                         <text class="label">渠道门店</text>
                         <input class="input" v-model="detailData.reportComArea" placeholder="请输入门店" />
@@ -75,20 +80,6 @@
                         <input class="input" v-model="detailData.bringTel" type="tel" maxlength="11"
                             placeholder="请输入带访电话" />
                     </view>
-
-                    <!-- <view class="form-item">
-                        <text class="label">报备人</text>
-                        <input class="input" v-model="detailData.reporter" disabled placeholder="报备人" />
-                    </view> -->
-
-                    <!-- <view class="form-item">
-                        <text class="label">报备时间</text>
-                        <picker mode="date" :value="detailData.reportTime" disabled @change="onReportTimeChange">
-                            <view class="report-picker">
-                                {{ detailData.reportTime || '报备时间' }}
-                            </view>
-                        </picker>
-                    </view> -->
                 </template>
             </view>
         </scroll-view>
@@ -117,12 +108,16 @@ const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
 // 渠道来访,1老带新,2内渠,3外渠分销,4自拓邀约,6内部员工及推荐,7全民营销
 const CHANNEL_VISIT_IDS = ['1', '2', '3', '4', '6', '7']
 
+// 备用电话列表
+const backupPhones = ref([''])
+
 // 表单数据
 const detailData = ref({
     visitProjName: '', // 项目名称
     visitNum: 1, // 到访人数
     visitTypeId: '', // 到访方式id
     knowWayId: '', // 知晓途径id
+    custTel2: '', // 备用电话（逗号分隔）
 })
 
 // 来访方式列表
@@ -133,6 +128,46 @@ const channelList = ref([])
 const projectList = ref([])
 // 提交锁
 const isSubmitting = ref(false)
+
+// 更新custTel2字段（将所有备用电话用逗号拼接）
+const updateCustTel2 = () => {
+    // 过滤掉空字符串
+    const validPhones = backupPhones.value.filter(phone => phone && phone.trim() !== '')
+    detailData.value.custTel2 = validPhones.join(',')
+}
+
+// 解析备用电话字符串，填充到备用电话列表
+const parseBackupPhones = (custTel2Str) => {
+    if (!custTel2Str) {
+        backupPhones.value = ['']
+        return
+    }
+    const phones = custTel2Str.split(',').filter(phone => phone && phone.trim() !== '')
+    if (phones.length === 0) {
+        backupPhones.value = ['']
+    } else {
+        backupPhones.value = phones
+    }
+}
+
+// 添加备用电话
+const addBackupPhone = () => {
+    if (backupPhones.value.length >= 5) {
+        uni.showToast({ title: '最多添加5个备用电话', icon: 'none' })
+        return
+    }
+    backupPhones.value.push('')
+}
+
+// 删除备用电话
+const removeBackupPhone = (index) => {
+    if (backupPhones.value.length <= 1) {
+        uni.showToast({ title: '至少保留一个备用电话', icon: 'none' })
+        return
+    }
+    backupPhones.value.splice(index, 1)
+    updateCustTel2()
+}
 
 // 来访类型，natural: 自然来访, channel: 渠道来访
 const visitType = computed(() => {
@@ -178,9 +213,11 @@ const onReportTimeChange = (e) => {
 const onKnowWayChange = (value, selectedItem) => {
     detailData.value.knowWayName = selectedItem.optionStr
 }
+
 const handleBack = () => {
     uni.navigateBack()
 }
+
 // 判断是否为脱敏电话
 const isDesensitizedTel = (tel) => {
     if (!tel) return false
@@ -188,8 +225,12 @@ const isDesensitizedTel = (tel) => {
     const desensitizedPattern = /^1[3-9]\d\*{4}\d{4}$/
     return desensitizedPattern.test(tel)
 }
+
 // 提交表单
 const handleSubmit = async () => {
+    // 提交前更新custTel2
+    updateCustTel2()
+
     console.log('提交表单数据:', detailData.value)
     if (isSubmitting.value) {
         return
@@ -206,11 +247,16 @@ const handleSubmit = async () => {
             return
         }
     }
-    // 备用电话校验：有值且不是脱敏电话时才校验格式
-    if (detailData.value.custTel2 && !isDesensitizedTel(detailData.value.custTel2)) {
-        if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel2)) {
-            uni.showToast({ title: '请输入正确的备用电话', icon: 'none' })
-            return
+    // 校验所有备用电话（排除空值）
+    const validPhones = backupPhones.value.filter(phone => phone && phone.trim() !== '')
+    for (let i = 0; i < validPhones.length; i++) {
+        const phone = validPhones[i]
+        // 如果是脱敏电话则跳过校验
+        if (!isDesensitizedTel(phone)) {
+            if (!/^1[3-9]\d{9}$/.test(phone)) {
+                uni.showToast({ title: `请输入正确的备用电话${i + 1}`, icon: 'none' })
+                return
+            }
         }
     }
     if (!detailData.value.visitTypeId) {
@@ -242,7 +288,7 @@ const handleSubmit = async () => {
         visitProjId: detailData.value.visitProjId, // 项目ID
         custName: detailData.value.custName, // 客户姓名
         custTel: detailData.value.custTel, // 客户电话
-        custTel2: detailData.value.custTel2, // 客户电话
+        custTel2: detailData.value.custTel2, // 备用电话（逗号分隔）
         visitNum: detailData.value.visitNum, // 到访人数
         visitTypeId: detailData.value.visitTypeId, // 到访方式ID
         knowWayId: detailData.value.knowWayId, // 知晓途径ID
@@ -289,7 +335,6 @@ const fetchGetKnowWay = async () => {
         const res = await visitorRegisterApi.getKnowWay()
         if (res.code === 200) {
             channelList.value = res.data || []
-
         } else {
             uni.showToast({
                 title: '获取知晓途径失败',
@@ -310,10 +355,6 @@ const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
         if (res.code === 200) {
-            // const data = res.data || []
-            // const [firstData, ...restData] = data
-            // const { optionStr, valueStr } = firstData || {}
-            // visitMethodList.value = transformData(optionStr, valueStr)
             visitMethodList.value = res.data || []
             const targetData = visitMethodList.value.find(item => item.valueStr == detailData.value.visitTypeId)
             if (targetData) {
@@ -361,6 +402,7 @@ const fetchGetProjList = async () => {
 const initFetchData = async () => {
     await Promise.all([fetchGetKnowWay(), fetchGetVisitType(), fetchGetProjList()])
 }
+
 const getDetailById = async (id, projId) => {
     const params = {
         projId: projId,
@@ -370,21 +412,34 @@ const getDetailById = async (id, projId) => {
         const res = await visitorRegisterApi.getVisitHis(params)
         if (res.code === 200) {
             const data = res.data || []
-            const [firastData] = data
-            const info = firastData || null
+            const [firstData] = data
+            const info = firstData || null
             if (info) {
                 detailData.value = {
                     ...detailData.value,
                     ...info,
                     visitNum: info.visitNum || 1,
-                    knowWayId: info.knowWayId.toString() || '',
-                    visitTypeId: info.visitTypeId.toString() || '',
+                    knowWayId: info.knowWayId ? info.knowWayId.toString() : '',
+                    visitTypeId: info.visitTypeId ? info.visitTypeId.toString() : '',
+                }
+                // 解析备用电话
+                if (info.custTel2) {
+                    parseBackupPhones(info.custTel2)
+                } else {
+                    backupPhones.value = ['']
                 }
             }
         }
     } catch (error) {
+        console.error('获取详情失败:', error)
     }
 }
+
+// 监听备用电话变化
+watch(backupPhones, () => {
+    updateCustTel2()
+}, { deep: true })
+
 onLoad(async (options) => {
     console.log(options)
     const { id, projId } = options
@@ -393,6 +448,7 @@ onLoad(async (options) => {
         await initFetchData()
     }
 })
+
 onMounted(() => { })
 </script>
 
@@ -470,11 +526,18 @@ page {
 .label.required::before {
     content: '*';
     color: #ff4444;
-    // margin-right: 4rpx;
     position: absolute;
     left: -10rpx;
     top: 50%;
     transform: translateY(-50%);
+}
+
+/* 输入框带图标 */
+.input-with-icon {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
 }
 
 /* 输入框 */
@@ -489,6 +552,31 @@ page {
     .input-placeholder {
         color: #999;
     }
+}
+
+/* 操作图标样式 */
+.action-icon {
+    width: 48rpx;
+    height: 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12rpx;
+    background-color: #ededed;
+    flex-shrink: 0;
+}
+
+.icon-plus,
+.icon-minus {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #007AFF;
+    padding-bottom: 6rpx;
+    box-sizing: border-box;
+}
+
+.icon-minus {
+    color: #ff4444;
 }
 
 /* 数字输入框 */
@@ -548,6 +636,7 @@ page {
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 20rpx;
     padding: 20rpx 30rpx;
     box-sizing: border-box;
     background-color: transparent;
