@@ -14,9 +14,10 @@
                     <text class="detail-label">客户电话：</text>
                     <text class="detail-value">{{ detailData.custTel || '-' }}</text>
                 </view>
-                <view class="detail-row">
-                    <text class="detail-label">备用电话：</text>
-                    <text class="detail-value">{{ detailData.custTel2 || '-' }}</text>
+                <!-- 备用电话列表展示 -->
+                <view v-for="(phone, index) in backupPhonesList" :key="index" class="detail-row">
+                    <text class="detail-label">备用电话{{ index + 1 }}：</text>
+                    <text class="detail-value">{{ phone || '-' }}</text>
                 </view>
                 <view class="detail-row">
                     <text class="detail-label">到访人数：</text>
@@ -28,7 +29,7 @@
                     <text class="detail-label">来访方式：</text>
                     <text class="detail-value">{{ detailData.visitTypeName || '-' }}</text>
                 </view>
-                <!-- 渠道来访展示一下信息 channel：渠道来访   natural：自然来访 -->
+                <!-- 渠道来访展示以下信息 channel：渠道来访   natural：自然来访 -->
                 <template v-if="detailData.visitType == 'channel'">
                     <view class="detail-row">
                         <text class="detail-label">带访人：</text>
@@ -156,6 +157,20 @@ const detailData = ref({
     salerName: "",
 })
 
+// 备用电话列表（拆分后的数组）
+const backupPhonesList = ref([])
+
+// 解析备用电话字符串，拆分成数组
+const parseBackupPhones = (custTel2Str) => {
+    if (!custTel2Str) {
+        backupPhonesList.value = []
+        return
+    }
+    // 按逗号分隔，过滤掉空字符串
+    const phones = custTel2Str.split(',').filter(phone => phone && phone.trim() !== '')
+    backupPhonesList.value = phones
+}
+
 // 弹窗引用
 const reassignPopupRef = ref(null)
 // 置业顾问列表
@@ -165,21 +180,24 @@ const searchKeyword = ref('')
 // 选中的顾问
 const selectedConsultantId = ref(null)
 const selectedConsultantData = ref(null)
+
 // 过滤后的顾问列表
 const filteredConsultantList = computed(() => {
     if (!searchKeyword.value) {
         return consultantList.value
     }
     return consultantList.value.filter(item =>
-        item.name.includes(searchKeyword.value)
+        item.salerName && item.salerName.includes(searchKeyword.value)
     )
 })
+
 // 搜索
 const handleSearch = () => {
     // 搜索时清空选中状态
     selectedConsultantId.value = null
     selectedConsultantData.value = null
 }
+
 // 选择顾问
 const selectConsultant = (item) => {
     if (selectedConsultantId.value === item.salerId) {
@@ -267,17 +285,25 @@ const getRecDetailById = async (id) => {
         const res = await visitorRegisterApi.getVisitHis(params)
         if (res.code === 200) {
             const data = res.data || []
-            const [firastData] = data
-            const targetData = consultantList.value.find((item) => item.salerId === firastData.salerId)
-            if (targetData) {
-                detailData.value.salerId = targetData.salerId || ''
-                detailData.value.salerName = targetData.salerName || ''
+            const [firstData] = data
+            if (firstData) {
+                // 更新备用电话展示
+                if (firstData.custTel2) {
+                    parseBackupPhones(firstData.custTel2)
+                }
+                const targetData = consultantList.value.find((item) => item.salerId === firstData.salerId)
+                if (targetData) {
+                    detailData.value.salerId = targetData.salerId || ''
+                    detailData.value.salerName = targetData.salerName || ''
+                }
             }
         }
     } catch (error) {
+        console.error('获取详情失败:', error)
     }
 }
-// 通过选中的项目ID获取对应项目的 置业顾问列表
+
+// 通过选中的项目ID获取对应项目的置业顾问列表
 const fetchGetSalerList = async () => {
     consultantList.value = []
     try {
@@ -292,18 +318,21 @@ const fetchGetSalerList = async () => {
             })
         }
     } catch (error) {
-
+        console.error('获取置业顾问列表失败:', error)
     }
 }
+
 onLoad(async (options) => {
-    console.log(options)
     const data = uni.getStorageSync('registerSuccessData')
     if (data) {
         detailData.value = {
             ...detailData.value,
             ...data
         }
-
+        // 解析备用电话字符串
+        if (data.custTel2) {
+            parseBackupPhones(data.custTel2)
+        }
         // 根据选择的项目ID，获取置业顾问列表
         await fetchGetSalerList()
     }
@@ -313,6 +342,7 @@ onLoad(async (options) => {
         getRecDetailById(options.id)
     }
 })
+
 // 页面卸载时
 onUnload(() => {
     // 清除存储的登记成功数据
@@ -469,34 +499,6 @@ page {
             right: 30rpx;
             transform: translateY(-50%);
             padding: 10rpx;
-        }
-    }
-
-    .search-box {
-        padding: 20rpx 30rpx;
-        position: relative;
-        flex-shrink: 0;
-
-        .search-input {
-            width: 100%;
-            height: 72rpx;
-            background-color: #f5f5f5;
-            border-radius: 36rpx;
-            padding: 0 60rpx 0 30rpx;
-            font-size: 28rpx;
-            color: #333;
-            border: none;
-
-            &::placeholder {
-                color: #ccc;
-            }
-        }
-
-        .search-icon {
-            position: absolute;
-            right: 50rpx;
-            top: 50%;
-            transform: translateY(-50%);
         }
     }
 

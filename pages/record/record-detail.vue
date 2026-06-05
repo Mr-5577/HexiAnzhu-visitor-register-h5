@@ -29,9 +29,11 @@
                     <text class="label">客户电话：</text>
                     <text class="value">{{ detailData.custTel || '-' }}</text>
                 </view>
-                <view class="info-row">
-                    <text class="label">备用电话：</text>
-                    <text class="value">{{ detailData.custTel2 || '-' }}</text>
+                <!-- 备用电话列表展示 -->
+                <view v-for="(phone, phoneIndex) in getBackupPhonesList(detailData.custTel2)" :key="phoneIndex"
+                    class="info-row">
+                    <text class="label">备用电话{{ phoneIndex + 1 }}：</text>
+                    <text class="value">{{ phone || '-' }}</text>
                 </view>
                 <view class="info-row">
                     <text class="label">知晓途径：</text>
@@ -96,6 +98,16 @@ const visitType = computed(() => {
     }
     return 'natural'
 })
+
+// 解析备用电话字符串，拆分成数组
+const getBackupPhonesList = (custTel2Str) => {
+    if (!custTel2Str) {
+        return [""]
+    }
+    // 按逗号分隔，过滤掉空字符串
+    const phones = custTel2Str.split(',').filter(phone => phone && phone.trim() !== '')
+    return phones
+}
 
 // 返回上一页
 const goBack = () => {

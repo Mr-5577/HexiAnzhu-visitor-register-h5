@@ -34,9 +34,11 @@
                             <text class="info-label">客户电话：</text>
                             <text class="info-value">{{ item.custTel }}</text>
                         </view>
-                        <view class="info-row">
-                            <text class="info-label">备用电话：</text>
-                            <text class="info-value">{{ item.custTel2 || '-' }}</text>
+                        <!-- 备用电话列表展示 -->
+                        <view v-for="(phone, phoneIndex) in getBackupPhonesList(item.custTel2)" :key="phoneIndex"
+                            class="info-row">
+                            <text class="info-label">备用电话{{ phoneIndex + 1 }}：</text>
+                            <text class="info-value">{{ phone || '-' }}</text>
                         </view>
                         <view class="info-row">
                             <text class="info-label">到访方式：</text>
@@ -203,6 +205,16 @@ const isAllSelected = computed(() => {
         selectedIds.value.length === recordList.value.length
 })
 
+// 解析备用电话字符串，拆分成数组
+const getBackupPhonesList = (custTel2Str) => {
+    if (!custTel2Str) {
+        return [""]
+    }
+    // 按逗号分隔，过滤掉空字符串
+    const phones = custTel2Str.split(',').filter(phone => phone && phone.trim() !== '')
+    return phones
+}
+
 // 项目切换
 const handleProjectChange = async (value, selectedItem) => {
     searchForm.value.visitProjId = value
@@ -310,7 +322,6 @@ const confirmAllocate = async () => {
             salerId: selectedConsultantId.value // 置业顾问ID
         }
         const res = await visitorRegisterApi.batchResetSaler(params)
-        // await new Promise(resolve => setTimeout(resolve, 500))
         uni.hideLoading()
         if (res.code === 200) {
             closeAllocateDialog() // 关闭选择顾问弹窗
@@ -392,10 +403,6 @@ const fetchGetVisitType = async () => {
     try {
         const res = await visitorRegisterApi.getVisitType()
         if (res.code === 200) {
-            // const data = res.data || []
-            // const [firstData, ...restData] = data
-            // const { optionStr, valueStr } = firstData || {}
-            // visitMethodList.value = transformData(optionStr, valueStr)
             visitMethodList.value = res.data || []
         }
     } catch (error) {
@@ -479,10 +486,6 @@ onShow(async () => {
     uni.$on('refreshRecordList', () => {
         getRecordList()
     })
-    // await fetchGetProjList()
-    // await fetchGetVisitType()
-    // await fetchGetSalerList()
-    // await getRecordList()
 })
 onHide(() => {
     // resetData()
@@ -613,6 +616,7 @@ page {
             .info-value {
                 color: #666;
                 flex: 1;
+                word-break: break-all;
             }
         }
 
