@@ -340,6 +340,14 @@ const onKnowWayChange = (value, selectedItem) => {
     formData.value.knowWayName = selectedItem.optionStr
 }
 
+// 判断是否为脱敏电话
+const isDesensitizedTel = (tel) => {
+    if (!tel) return false
+    // 匹配格式：1[3-9][0-9] + 4个* + 4位数字, 例如：138****1234
+    const desensitizedPattern = /^1[3-9]\d\*{4}\d{4}$/
+    return desensitizedPattern.test(tel)
+}
+
 // 提交表单
 const handleSubmit = async () => {
     // 提交前更新custTel2
@@ -358,16 +366,23 @@ const handleSubmit = async () => {
         uni.showToast({ title: '请输入客户姓名', icon: 'none' })
         return
     }
-    if (!/^1[3-9]\d{9}$/.test(formData.value.custTel)) {
-        uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
-        return
+    // 客户电话校验：如果是脱敏电话则跳过校验，否则校验格式
+    if (!isDesensitizedTel(formData.value.custTel)) {
+        if (!/^1[3-9]\d{9}$/.test(formData.value.custTel)) {
+            uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
+            return
+        }
     }
     // 校验所有备用电话
     const validPhones = backupPhones.value.filter(phone => phone.trim() !== '')
     for (let i = 0; i < validPhones.length; i++) {
-        if (!/^1[3-9]\d{9}$/.test(validPhones[i])) {
-            uni.showToast({ title: `请输入正确的备用电话${i + 1}`, icon: 'none' })
-            return
+        const phone = validPhones[i]
+        // 如果是脱敏电话则跳过校验
+        if (!isDesensitizedTel(phone)) {
+            if (!/^1[3-9]\d{9}$/.test(validPhones[i])) {
+                uni.showToast({ title: `请输入正确的备用电话${i + 1}`, icon: 'none' })
+                return
+            }
         }
     }
     if (!formData.value.visitTypeId) {

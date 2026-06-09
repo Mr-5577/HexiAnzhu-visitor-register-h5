@@ -241,15 +241,11 @@ const handleSubmit = async () => {
         return
     }
     // 客户电话校验：如果是脱敏电话则跳过校验，否则校验格式
-    // if (!isDesensitizedTel(detailData.value.custTel)) {
-    //     if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel)) {
-    //         uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
-    //         return
-    //     }
-    // }
-    if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel)) {
-        uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
-        return
+    if (!isDesensitizedTel(detailData.value.custTel)) {
+        if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel)) {
+            uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
+            return
+        }
     }
     // 校验所有备用电话（排除空值）
     const validPhones = backupPhones.value.filter(phone => phone && phone.trim() !== '')
