@@ -160,6 +160,7 @@ import { ref, computed, onMounted } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
 import CustomPicker from '@/components/custom-picker/index.vue'
+import dayjs from 'dayjs'
 // 查询表单
 const searchForm = ref({
     visitProjId: '',
@@ -444,6 +445,12 @@ const getRecordList = async () => {
         if (searchForm.value.visitDate) {
             params.visitTimeStart = `${searchForm.value.visitDate} 00:00:00`
             params.visitTimeEnd = `${searchForm.value.visitDate} 23:59:59`
+        } else {
+            // 没选日期，默认查询最近三天
+            const today = dayjs()
+            const threeDaysAgo = today.subtract(3, 'day')
+            params.visitTimeStart = threeDaysAgo.format('YYYY-MM-DD 00:00:00')
+            params.visitTimeEnd = today.format('YYYY-MM-DD 23:59:59')
         }
         const res = await visitorRegisterApi.getVisitHis(params)
         uni.hideLoading()

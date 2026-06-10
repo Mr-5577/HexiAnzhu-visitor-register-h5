@@ -89,6 +89,7 @@
 <script setup>
 import { ref } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
+import dayjs from 'dayjs'
 
 const props = defineProps({
     projectId: {
@@ -141,12 +142,20 @@ const handleSearch = () => {
 
 const fetchReportList = () => {
     reportList.value = []
-    const params = {
+    let params = {
         projId: props.projectId,
         custTel: searchForm.value.custTel,
         custName: searchForm.value.custName,
-        reportTimeStart: searchForm.value.reportTime ? `${searchForm.value.reportTime} 00:00:00` : '',
-        reportTimeEnd: searchForm.value.reportTime ? `${searchForm.value.reportTime} 23:59:59` : ''
+    }
+    if (searchForm.value.reportTime) {
+        params.reportTimeStart = `${searchForm.value.reportTime} 00:00:00`
+        params.reportTimeEnd = `${searchForm.value.reportTime} 23:59:59`
+    } else {
+        // 没选日期，默认查询最近三天
+        const today = dayjs()
+        const threeDaysAgo = today.subtract(3, 'day')
+        params.reportTimeStart = threeDaysAgo.format('YYYY-MM-DD 00:00:00')
+        params.reportTimeEnd = today.format('YYYY-MM-DD 23:59:59')
     }
     visitorRegisterApi.getReportHis(params).then((res) => {
         if (res.code === 200) {
