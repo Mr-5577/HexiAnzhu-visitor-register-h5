@@ -117,3 +117,18 @@ export const transformData = (optionStr, valueStr) => {
 
   return result;
 };
+
+/**
+ * @name 脱敏手机号,只显示前三后四的数字，中间显示*号
+ * @param {*} phone 要加密的电话号码
+ * @returns 加密后的电话号码，如：138****1234
+ */
+export const desensitizePhone = (phone) => {
+  if (!phone) return "";
+  const phoneStr = String(phone).trim();
+  const regex = /^1[3-9]\d{9}$/; // 手机号正则表达式
+  if (regex.test(phoneStr)) {
+    return phoneStr.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+  }
+  return phoneStr;
+};

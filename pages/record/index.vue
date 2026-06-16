@@ -441,6 +441,7 @@ const getRecordList = async () => {
             projId: searchForm.value.visitProjId,
             custName: searchForm.value.custName,
             custTel: searchForm.value.custTel,
+            isShowTel: false, // 是否明文显示电话
         }
         if (searchForm.value.visitDate) {
             params.visitTimeStart = `${searchForm.value.visitDate} 00:00:00`

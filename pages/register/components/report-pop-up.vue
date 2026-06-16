@@ -61,7 +61,8 @@
                             </view>
                             <view class="detail-row">
                                 <text class="detail-label">客户电话：</text>
-                                <text class="detail-value">{{ item.custTel }}</text>
+                                <!-- <text class="detail-value">{{ item.custTel }}</text> -->
+                                <text class="detail-value">{{ item.desensitizeCustTel }}</text>
                             </view>
                             <view class="detail-row">
                                 <text class="detail-label">报备时间：</text>
@@ -90,6 +91,7 @@
 import { ref } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import dayjs from 'dayjs'
+import { desensitizePhone } from '@/utils/common.js'
 
 const props = defineProps({
     projectId: {
@@ -146,6 +148,7 @@ const fetchReportList = () => {
         projId: props.projectId,
         custTel: searchForm.value.custTel,
         custName: searchForm.value.custName,
+        isShowTel: true, // 是否明文显示电话
     }
     if (searchForm.value.reportTime) {
         params.reportTimeStart = `${searchForm.value.reportTime} 00:00:00`
@@ -159,7 +162,13 @@ const fetchReportList = () => {
     }
     visitorRegisterApi.getReportHis(params).then((res) => {
         if (res.code === 200) {
-            reportList.value = res.data || []
+            const list = res.data || []
+            reportList.value = list.map((item) => {
+                return {
+                    ...item,
+                    desensitizeCustTel: desensitizePhone(item.custTel),
+                }
+            })
         }
     }).catch((err) => {
         uni.showToast({
@@ -279,9 +288,11 @@ defineExpose({
             gap: 16rpx;
             width: 50%;
             margin-right: 20rpx;
+
             &:last-child {
                 margin-right: 0;
             }
+
             &.flex-1 {
                 flex: 1;
             }
@@ -328,6 +339,7 @@ defineExpose({
 
         .search-buttons {
             display: flex;
+
             .reset-btn,
             .search-btn {
                 width: 120rpx;
@@ -378,6 +390,7 @@ defineExpose({
         border: 2rpx solid #f0f0f0;
         transition: all 0.3s ease;
         margin-bottom: 20rpx;
+
         &.report-item-active {
             border-color: #007AFF;
             background-color: #f0f8ff;

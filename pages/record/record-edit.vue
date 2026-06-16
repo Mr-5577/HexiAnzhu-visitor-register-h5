@@ -23,7 +23,8 @@
                 <!-- 客户电话 -->
                 <view class="form-item">
                     <text class="label required">客户电话</text>
-                    <input class="input" v-model="detailData.custTel" type="tel" placeholder="请输入客户电话" maxlength="11" />
+                    <input class="input" v-model="detailData.desensitizeCustTel" type="tel" placeholder="请输入客户电话"
+                        maxlength="11" />
                 </view>
 
                 <!-- 备用电话列表 -->
@@ -102,6 +103,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
+import { desensitizePhone } from '@/utils/common.js'
 
 // 自然来访,0自然到访、5电转访、8工程抵款、9棚改
 const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
@@ -241,8 +243,8 @@ const handleSubmit = async () => {
         return
     }
     // 客户电话校验：如果是脱敏电话则跳过校验，否则校验格式
-    if (!isDesensitizedTel(detailData.value.custTel)) {
-        if (!/^1[3-9]\d{9}$/.test(detailData.value.custTel)) {
+    if (!isDesensitizedTel(detailData.value.desensitizeCustTel)) {
+        if (!/^1[3-9]\d{9}$/.test(detailData.value.desensitizeCustTel)) {
             uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
             return
         }
@@ -287,18 +289,25 @@ const handleSubmit = async () => {
         id: detailData.value.id,
         visitProjId: detailData.value.visitProjId, // 项目ID
         custName: detailData.value.custName, // 客户姓名
-        custTel: detailData.value.custTel, // 客户电话
+        // custTel: detailData.value.custTel, // 客户电话
         custTel2: detailData.value.custTel2, // 备用电话（逗号分隔）
         visitNum: detailData.value.visitNum, // 到访人数
         visitTypeId: detailData.value.visitTypeId, // 到访方式ID
         knowWayId: detailData.value.knowWayId, // 知晓途径ID
         visitTime: detailData.value.visitTime, // 到访时间
     }
+    // 如果明文电话脱敏后和脱敏电话相同，说明没有修改电话，则使用明文电话，否则使用脱敏电话
+    if (desensitizePhone(detailData.value.custTel) == detailData.value.desensitizeCustTel) {
+        submitData.custTel = detailData.value.custTel
+    } else {
+        submitData.custTel = detailData.value.desensitizeCustTel
+    }
     if (visitType.value === 'channel') {
         submitData.reportComArea = detailData.value.reportComArea; // 报备公司门店
         submitData.bringMan = detailData.value.bringMan
         submitData.bringTel = detailData.value.bringTel
     }
+    console.log('提交数据:', submitData)
     uni.showLoading({ title: '提交中...' })
     try {
         const res = await visitorRegisterApi.editVisitRec(submitData)
@@ -407,6 +416,7 @@ const getDetailById = async (id, projId) => {
     const params = {
         projId: projId,
         id: id,
+        isShowTel: true, // 是否明文显示电话
     }
     try {
         const res = await visitorRegisterApi.getVisitHis(params)
@@ -421,6 +431,7 @@ const getDetailById = async (id, projId) => {
                     visitNum: info.visitNum || 1,
                     knowWayId: info.knowWayId ? info.knowWayId.toString() : '',
                     visitTypeId: info.visitTypeId ? info.visitTypeId.toString() : '',
+                    desensitizeCustTel: desensitizePhone(info.custTel), // 客户电话脱敏
                 }
                 // 解析备用电话
                 if (info.custTel2) {

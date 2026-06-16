@@ -51,7 +51,8 @@
                             </view>
                             <view class="info-row">
                                 <text class="info-label">客户电话：</text>
-                                <text class="info-value">{{ item.custTel }}</text>
+                                <!-- <text class="info-value">{{ item.custTel }}</text> -->
+                                <text class="info-value">{{ item.desensitizeCustTel }}</text>
                             </view>
                             <view class="info-row">
                                 <text class="info-label">置业顾问：</text>
@@ -81,6 +82,7 @@
 <script setup>
 import { ref } from 'vue'
 import { visitorRegisterApi } from '@/common/api.js'
+import { desensitizePhone } from '@/utils/common.js'
 
 const props = defineProps({
     projectId: {
@@ -141,6 +143,7 @@ const fetchRecordList = async () => {
             projId: props.projectId,
             custName: searchForm.value.custName,
             custTel: searchForm.value.custTel,
+            isShowTel: true, // 是否明文显示电话
         }
         if (searchForm.value.visitDate) {
             params.visitTimeStart = `${searchForm.value.visitDate} 00:00:00`
@@ -152,7 +155,8 @@ const fetchRecordList = async () => {
             recordList.value = list.map((item) => {
                 return {
                     ...item,
-                    salerName: getSalerTextRect(item.salerId)
+                    salerName: getSalerTextRect(item.salerId),
+                    desensitizeCustTel: desensitizePhone(item.custTel)
                 }
             })
         }

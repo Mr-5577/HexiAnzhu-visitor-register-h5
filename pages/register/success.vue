@@ -280,6 +280,7 @@ const getRecDetailById = async (id) => {
     const params = {
         projId: detailData.value.visitProjId,
         id: id,
+        isShowTel: true, // 是否明文显示电话
     }
     try {
         const res = await visitorRegisterApi.getVisitHis(params)

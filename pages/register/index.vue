@@ -36,7 +36,8 @@
 
                 <view class="form-item">
                     <text class="label required">客户电话</text>
-                    <input class="input" v-model="formData.custTel" type="tel" placeholder="请输入客户电话" maxlength="11" />
+                    <input class="input" v-model="formData.desensitizeCustTel" type="tel" placeholder="请输入客户电话"
+                        maxlength="11" />
                 </view>
 
                 <!-- 备用电话列表 -->
@@ -65,6 +66,10 @@
                 </view>
             </view>
             <view class="form-card">
+                <view class="form-item" v-if="formData.lastVisitTime">
+                    <text class="label">上次到访时间</text>
+                    <input class="input" v-model="formData.lastVisitTime" disabled placeholder="上次来访时间" />
+                </view>
                 <view class="form-item">
                     <text class="label required">到访方式</text>
                     <CustomPicker v-model="formData.visitTypeId" :options="filteredVisitMethodList"
@@ -142,7 +147,7 @@
             @bringManSelected="onBringManSelected" />
         <!-- 选择职业顾问 -->
         <SaleListPopUp ref="salerPickerRef" :projectId="formData.visitProjId" @salerSelected="onSalerSelected" />
-        <!-- 来访记录弹窗 -->
+        <!-- 二次来访弹窗 -->
         <SecondVisitPopUp ref="secondVisitPopupRef" :projectId="formData.visitProjId"
             @recordSelected="onRecordSelected" />
     </view>
@@ -159,6 +164,7 @@ import SecondVisitPopUp from './components/second-visit-pop-up.vue'
 import CustomPicker from '@/components/custom-picker/index.vue'
 import { visitorRegisterApi } from '@/common/api.js'
 import { transformData } from '@/utils/common.js'
+import { desensitizePhone } from '@/utils/common.js'
 
 // 自然来访,0自然到访、5电转访、8工程抵款、9棚改
 const NATURAL_VISIT_IDS = ['0', '5', '8', '9']
@@ -173,8 +179,10 @@ const backupPhones = ref(['']) // 初始化一个空备用电话
 const formData = ref({
     custName: '', // 客户姓名
     custTel: '', // 客户电话1
+    desensitizeCustTel: '', // 脱敏客户电话1
     custTel2: '', // 备用电话（逗号分隔）
     visitNum: 1, // 到访人数
+    lastVisitTime: "", // 上次到访时间
     visitTypeId: '', // 到访方式ID
     visitTypeName: '', // 到访方式name
     bringMan: '',      // 带访人
@@ -256,9 +264,11 @@ const resetForm = () => {
     // formData.value.visitProjName = '' // 项目
     formData.value.custName = '' // 客户姓名
     formData.value.custTel = '' // 客户电话
+    formData.value.desensitizeCustTel = '' // 脱敏客户电话
     backupPhones.value = [''] // 重置备用电话列表
     formData.value.custTel2 = '' // 备用电话
     formData.value.visitNum = 1 // 到访人数
+    formData.value.lastVisitTime = '' // 上次到访时间
     formData.value.visitTypeId = '' // 到访方式ID
     formData.value.visitTypeName = '' // 到访方式name
     formData.value.bringMan = ''      // 带访人
@@ -366,9 +376,9 @@ const handleSubmit = async () => {
         uni.showToast({ title: '请输入客户姓名', icon: 'none' })
         return
     }
-    // 客户电话校验：如果是脱敏电话则跳过校验，否则校验格式
-    if (!isDesensitizedTel(formData.value.custTel)) {
-        if (!/^1[3-9]\d{9}$/.test(formData.value.custTel)) {
+    // 客户电话校验：如果脱敏则跳过校验，否则校验格式
+    if (!isDesensitizedTel(formData.value.desensitizeCustTel)) {
+        if (!/^1[3-9]\d{9}$/.test(formData.value.desensitizeCustTel)) {
             uni.showToast({ title: '请输入正确的客户电话', icon: 'none' })
             return
         }
@@ -413,10 +423,10 @@ const handleSubmit = async () => {
     isSubmitting.value = true
 
     // 提交数据
-    const submitData = {
+    let submitData = {
         visitType: visitType.value, // 来访类型
         custName: formData.value.custName, // 客户姓名
-        custTel: formData.value.custTel, // 客户电话
+        // custTel: formData.value.custTel, // 客户电话
         custTel2: formData.value.custTel2, // 备用电话（逗号分隔）
         visitNum: formData.value.visitNum, // 到访人数
         visitTypeId: formData.value.visitTypeId, // 到访方式ID
@@ -430,7 +440,15 @@ const handleSubmit = async () => {
         // 条件添加 salerId
         ...(formData.value.salerId && { salerId: formData.value.salerId })
     }
+    // 如果明文电话脱敏后和脱敏电话相同，说明没有修改电话，则使用明文电话，否则使用脱敏电话
+    if (desensitizePhone(formData.value.custTel) == formData.value.desensitizeCustTel) {
+        submitData.custTel = formData.value.custTel
+    } else {
+        submitData.custTel = formData.value.desensitizeCustTel
+    }
+    console.log('提交数据:', submitData)
     uni.showLoading({ title: '提交中...' })
+    
     try {
         const res = await visitorRegisterApi.addVisitRec(submitData)
         uni.hideLoading()
@@ -496,7 +514,8 @@ const onReportSelected = (reportData) => {
     formData.value.reportTime = reportData.reportTime
     // 回填客户信息
     formData.value.custName = reportData.custName
-    formData.value.custTel = reportData.custTel
+    formData.value.custTel = reportData.custTel // 明文电话
+    formData.value.desensitizeCustTel = reportData.desensitizeCustTel // 脱敏电话
     // 回填备用电话
     if (reportData.custTel2) {
         parseBackupPhones(reportData.custTel2)
@@ -666,11 +685,15 @@ const onRecordSelected = (recordData) => {
     if (recordData) {
         formData.value.custName = recordData.custName
         formData.value.custTel = recordData.custTel
+        formData.value.desensitizeCustTel = recordData.desensitizeCustTel
+        formData.value.lastVisitTime = recordData.visitTime
         formData.value.salerId = recordData.salerId
         formData.value.salerName = recordData.salerName
     } else {
         formData.value.custName = ''
         formData.value.custTel = ''
+        formData.value.desensitizeCustTel = ''
+        formData.value.lastVisitTime = ''
         formData.value.salerId = ''
         formData.value.salerName = '暂无'
     }
