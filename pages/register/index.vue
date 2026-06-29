@@ -143,8 +143,7 @@
         <!-- 报备弹窗 -->
         <ReportPopup ref="reportPopupRef" :projectId="formData.visitProjId" @reportSelected="onReportSelected" />
         <!-- 历史带访人列表 -->
-        <VisitPersonPopup ref="bringManPopupRef" :visitComId="reportInfo?.visitComId"
-            @bringManSelected="onBringManSelected" />
+        <VisitPersonPopup ref="bringManPopupRef" :visitComId="visitComId" @bringManSelected="onBringManSelected" />
         <!-- 选择职业顾问 -->
         <SaleListPopUp ref="salerPickerRef" :projectId="formData.visitProjId" @salerSelected="onSalerSelected" />
         <!-- 二次来访弹窗 -->
@@ -188,7 +187,7 @@ const formData = ref({
     bringMan: '',      // 带访人
     bringTel: '', // 带访电话
     reportComArea: '', // 报备公司门店
-    reportCom: '', // 报备公司
+    reportCom: '', // 报备人渠道公司
     reportId: '', // 报备ID
     reporter: '',      // 报备人
     reportTime: '',    // 报备时间
@@ -208,8 +207,8 @@ const channelList = ref([])
 const projectList = ref([])
 // 提交锁
 const isSubmitting = ref(false)
-// 报备信息
-const reportInfo = ref(null)
+// 所属公司ID
+const visitComId = ref(null)
 // 带访人列表
 const bringManList = ref([])
 // 报备弹窗ref
@@ -506,7 +505,7 @@ const onReportSelected = (reportData) => {
     if (!reportData) {
         return
     }
-    reportInfo.value = reportData
+    visitComId.value = reportData.visitComId
     // 回填报备信息到表单
     formData.value.reportId = reportData.id
     formData.value.reportCom = reportData.reportCom
@@ -608,8 +607,8 @@ const initFetchData = async () => {
 
 // 设置默认带访人
 const setDefaultBringMan = async () => {
-    // 检查是否已选择报备公司
-    if (!reportInfo.value) {
+    // 检查是否选择报备获取到所属公司ID
+    if (!visitComId.value) {
         uni.showToast({
             title: '请先选择报备公司',
             icon: 'none'
@@ -689,6 +688,22 @@ const onRecordSelected = (recordData) => {
         formData.value.lastVisitTime = recordData.visitTime
         formData.value.salerId = recordData.salerId
         formData.value.salerName = recordData.salerName
+        // 回填渠道公司信息
+        visitComId.value = recordData.visitComId || '' // 所属公司ID
+        formData.value.reportId = recordData.reportId || ''
+        formData.value.reportCom = recordData.reportCom || ''
+        formData.value.reportComArea = recordData.reportComArea || ''
+        formData.value.reporter = recordData.reportMan
+        formData.value.reportTime = recordData.reportTime
+        // 回填带访人、带访电话
+        formData.value.bringMan = recordData.bringMan
+        formData.value.bringTel = recordData.bringTel
+        // 回显到访方式
+        formData.value.visitTypeId = recordData.visitTypeId
+        formData.value.visitTypeName = visitMethodList.value.find(item => item.valueStr == recordData.visitTypeId)?.optionStr
+        // 回显知晓途径
+        formData.value.knowWayId = recordData.knowWayId
+        formData.value.knowWayName = channelList.value.find(item => item.valueStr == recordData.knowWayId)?.optionStr
     } else {
         formData.value.custName = ''
         formData.value.custTel = ''
@@ -696,6 +711,22 @@ const onRecordSelected = (recordData) => {
         formData.value.lastVisitTime = ''
         formData.value.salerId = ''
         formData.value.salerName = '暂无'
+        // 清除 渠道公司信息
+        visitComId.value = '' // 所属公司ID
+        formData.value.reportId = ''
+        formData.value.reportCom = ''
+        formData.value.reportComArea = ''
+        formData.value.reporter = ''
+        formData.value.reportTime = ''
+        // 清除 带访人、带访电话
+        formData.value.bringMan = ''
+        formData.value.bringTel = ''
+        // 清除 到访方式
+        formData.value.visitTypeId = ''
+        formData.value.visitTypeName = ''
+        // 清除 知晓途径
+        formData.value.knowWayId = ''
+        formData.value.knowWayName = ''
     }
 }
 watch(backupPhones, () => {
