@@ -443,11 +443,14 @@ const getRecordList = async () => {
             custTel: searchForm.value.custTel,
             isShowTel: false, // 是否明文显示电话
         }
+        // 判断是否有姓名或电话的搜索条件
+        const hasNameOrTel = searchForm.value.custName || searchForm.value.custTel;
         if (searchForm.value.visitDate) {
+            // 选择了时间，按照选择的时间查询
             params.visitTimeStart = `${searchForm.value.visitDate} 00:00:00`
             params.visitTimeEnd = `${searchForm.value.visitDate} 23:59:59`
-        } else {
-            // 没选日期，默认查询最近三天
+        } else if (!hasNameOrTel) {
+            // 没有选择时间，且没有姓名/电话条件，默认查询最近三天
             const today = dayjs()
             const threeDaysAgo = today.subtract(3, 'day')
             params.visitTimeStart = threeDaysAgo.format('YYYY-MM-DD 00:00:00')
